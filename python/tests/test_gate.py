@@ -143,3 +143,48 @@ def test_packaged_schema_is_byte_equal_to_repo_schema():
 
 def test_gate_reads_only_the_packaged_schema():
     assert not hasattr(gate, "_CANDIDATES"), "no repo-root fallback: the package copy is the only source"
+
+
+@pytest.mark.parametrize(
+    "books",
+    [
+        ["pinnacle", ""],  # an empty book name
+        ["pinnacle", "pinnacle"],  # the same book twice is not two books
+        ["pinnacle", "circa", "pinnacle"],
+    ],
+)
+def test_clv_reference_books_must_be_distinct_non_empty_names(books):
+    c = _valid()
+    c["clv_reference"]["books"] = books
+    with pytest.raises(ValidationError):
+        validate_criteria(c)
+    with pytest.raises(ValidationError):
+        criteria_hash(c)
+
+
+NFD_ABERG = "Åberg"  # "Åberg" decomposed: same text to a reader, different bytes and hash
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        lambda c: c.update(paper_price_rule=f"best price, {NFD_ABERG} rule"),
+        lambda c: c.update(notes=NFD_ABERG),
+        lambda c: c["clv_reference"].update(books=["pinnacle", NFD_ABERG]),
+        lambda c: c.update({NFD_ABERG: "x"}),  # a key: rejected as non-NFC before the schema sees it
+    ],
+)
+def test_non_nfc_string_anywhere_is_a_value_error(mutate):
+    c = _valid()
+    mutate(c)
+    with pytest.raises(ValueError, match="NFC"):
+        validate_criteria(c)
+    with pytest.raises(ValueError, match="NFC"):
+        criteria_hash(c)
+
+
+def test_nfc_non_ascii_text_is_accepted():
+    c = _valid()
+    c["notes"] = "Åberg"  # precomposed: NFC
+    validate_criteria(c)
+    assert len(criteria_hash(c)) == 64

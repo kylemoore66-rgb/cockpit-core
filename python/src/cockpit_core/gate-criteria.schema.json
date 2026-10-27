@@ -29,8 +29,9 @@
       "properties": {
         "books": {
           "type": "array",
-          "items": { "type": "string" },
-          "minItems": 2
+          "items": { "type": "string", "minLength": 1 },
+          "minItems": 2,
+          "uniqueItems": true
         },
         "method": {
           "enum": ["multiplicative", "power", "shin"]
