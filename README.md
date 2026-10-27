@@ -1,0 +1,3 @@
+# cockpit-core
+
+The shared betting math and track-record proof code behind Cockpit, in Python (`python/`) and TypeScript (`ts/`). It is public so anyone can audit how Cockpit computes its edges, stakes and track record: the odds conversion, de-vigging, Kelly staking, settlement, and the hash-committed prediction log that proves a record was not edited after the fact. Both packages are tested against one shared file of hand-worked reference values (`fixtures/cases.json`), so the two implementations cannot silently disagree. To run the tests: `cd python && uv sync && uv run pytest` and `cd ts && npm ci && npm test`.

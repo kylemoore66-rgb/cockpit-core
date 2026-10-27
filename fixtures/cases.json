@@ -1,0 +1,77 @@
+{
+  "odds_conversion": [
+    {"american": -110, "decimal_4dp": "1.9091"},
+    {"american": 450, "decimal_4dp": "5.5000"},
+    {"decimal": "2.5", "american": 150},
+    {"decimal": "1.5", "american": -200},
+    {"decimal": "1.9091", "american": -110},
+    {"decimal": "1.32", "american": -313, "note": "exact -312.5; half-up away from zero, not JS Math.round or banker's"},
+    {"decimal": "2.245", "american": 125, "note": "exact 124.5; banker's rounding would give 124"}
+  ],
+  "edge_kelly": [
+    {"fair_prob": "0.25", "price": "5.5", "edge": 0.375, "full_kelly": 0.0833333333},
+    {"fair_prob": "0.5", "price": "2.5", "edge": 0.25, "full_kelly": 0.1666666667, "note": "tennis kellyUtils.js gave 0.0666666667 (bug: divided by decimal odds)"},
+    {"fair_prob": "0.15", "price": "5.5", "edge": -0.175, "full_kelly": 0.0}
+  ],
+  "stakes": [
+    {"name": "bet_cap_binds", "fair_prob": "0.25", "price": "5.5", "bankroll": "10000", "kelly_multiplier": "0.25", "bet_cap": "0.02", "participant_cap": "0.05", "event_cap": "0.05", "participant_exposure": "0", "event_exposure": "0", "stake": "200.00"},
+    {"name": "kelly_rounds_down", "fair_prob": "0.25", "price": "5.5", "bankroll": "10000", "kelly_multiplier": "0.1", "bet_cap": "0.02", "participant_cap": "0.05", "event_cap": "0.05", "participant_exposure": "0", "event_exposure": "0", "stake": "83.33"},
+    {"name": "participant_cap_binds", "fair_prob": "0.25", "price": "5.5", "bankroll": "10000", "kelly_multiplier": "0.25", "bet_cap": "0.02", "participant_cap": "0.05", "event_cap": "0.05", "participant_exposure": "450", "event_exposure": "450", "stake": "50.00"},
+    {"name": "event_cap_exhausted", "fair_prob": "0.25", "price": "5.5", "bankroll": "10000", "kelly_multiplier": "0.25", "bet_cap": "0.02", "participant_cap": "0.05", "event_cap": "0.05", "participant_exposure": "0", "event_exposure": "500", "stake": "0.00"},
+    {"name": "exposure_past_cap", "fair_prob": "0.25", "price": "5.5", "bankroll": "10000", "kelly_multiplier": "0.25", "bet_cap": "0.02", "participant_cap": "0.05", "event_cap": "0.05", "participant_exposure": "0", "event_exposure": "900", "stake": "0.00"},
+    {"name": "negative_edge", "fair_prob": "0.15", "price": "5.5", "bankroll": "10000", "kelly_multiplier": "0.25", "bet_cap": "0.02", "participant_cap": "0.05", "event_cap": "0.05", "participant_exposure": "0", "event_exposure": "0", "stake": "0.00"},
+    {"name": "tennis_case_quarter_kelly", "fair_prob": "0.5", "price": "2.5", "bankroll": "1000", "kelly_multiplier": "0.25", "bet_cap": "1", "participant_cap": "1", "event_cap": "1", "participant_exposure": "0", "event_exposure": "0", "stake": "41.66"},
+    {"name": "exact_whole_cent_not_lost", "fair_prob": "0.08", "price": "13.0", "bankroll": "1200", "kelly_multiplier": "0.25", "bet_cap": "0.02", "participant_cap": "0.05", "event_cap": "0.05", "participant_exposure": "0", "event_exposure": "0", "stake": "1.00", "note": "exactly 1.00; dividing before multiplying gives 0.99"}
+  ],
+  "settlement": [
+    {"name": "win", "stake": "100", "price": "1.9091", "win": "1/1", "refund": "0/1", "profit": "90.91"},
+    {"name": "loss", "stake": "100", "price": "1.9091", "win": "0/1", "refund": "0/1", "profit": "-100.00"},
+    {"name": "void", "stake": "100", "price": "1.9091", "win": "0/1", "refund": "1/1", "profit": "0.00"},
+    {"name": "half_win", "stake": "100", "price": "1.9091", "win": "1/2", "refund": "1/2", "profit": "45.46"},
+    {"name": "half_loss", "stake": "100", "price": "1.9091", "win": "0/1", "refund": "1/2", "profit": "-50.00"},
+    {"name": "dead_heat_2_places_3_tied", "stake": "10", "price": "4.0", "win": "2/3", "refund": "0/1", "profit": "16.67"},
+    {"name": "dead_heat_1_place_3_tied", "stake": "30", "price": "6.0", "win": "1/3", "refund": "0/1", "profit": "30.00"},
+    {"name": "dead_heat_negative_half_cent", "stake": "11", "price": "2.25", "win": "1/6", "refund": "0/1", "profit": "-6.88", "note": "exact -6.875; converting 1/6 to a decimal first gives -6.87"},
+    {"name": "half_up_not_half_even", "stake": "10", "price": "1.8125", "win": "1/1", "refund": "0/1", "profit": "8.13", "note": "exact 8.125; half-even gives 8.12"},
+    {"name": "negative_half_cent_away_from_zero", "stake": "10", "price": "1.375", "win": "1/2", "refund": "0/1", "profit": "-3.13", "note": "exact -3.125"}
+  ],
+  "clv": [{"bet_price": 2.0, "fair_close_prob": 0.55, "clv": 0.0953101798}],
+  "canonical": {
+    "basic": {
+      "prediction": {"model_version": "golf-baseline@1", "sport": "golf", "event": "2026-mexico-open", "market": "2026-mexico-open:top_10", "selection": "2026-mexico-open:top_10:player-123", "fair_prob": 0.1834, "paper_price": "6.5", "paper_book": "draftkings", "predicted_at": "2026-10-29T13:05:00Z", "features_summary": {"form_trend": "strong", "course_fit": "+"}},
+      "canonical": "{\"event\":\"2026-mexico-open\",\"fair_prob\":\"0.183400\",\"features_summary\":{\"course_fit\":\"+\",\"form_trend\":\"strong\"},\"market\":\"2026-mexico-open:top_10\",\"model_version\":\"golf-baseline@1\",\"paper_book\":\"draftkings\",\"paper_price\":\"6.5000\",\"predicted_at\":\"2026-10-29T13:05:00.000Z\",\"selection\":\"2026-mexico-open:top_10:player-123\",\"sport\":\"golf\"}",
+      "salt_hex": "000102030405060708090a0b0c0d0e0f",
+      "row_hash": "feb389ad6d89727d409ee325e6bcfa419a6e05297e5dc71b81ada43c668b0ed2"
+    },
+    "unicode": {
+      "prediction": {"model_version": "golf-baseline@1", "sport": "golf", "event": "2026-mexico-open", "market": "2026-mexico-open:top_10", "selection": "2026-mexico-open:top_10:player-123", "fair_prob": 0.1834, "paper_price": "6.5", "paper_book": "draftkings", "predicted_at": "2026-10-29T13:05:00Z", "features_summary": {"note": "Åberg — links form", "course_fit": "+"}},
+      "canonical": "{\"event\":\"2026-mexico-open\",\"fair_prob\":\"0.183400\",\"features_summary\":{\"course_fit\":\"+\",\"note\":\"Åberg — links form\"},\"market\":\"2026-mexico-open:top_10\",\"model_version\":\"golf-baseline@1\",\"paper_book\":\"draftkings\",\"paper_price\":\"6.5000\",\"predicted_at\":\"2026-10-29T13:05:00.000Z\",\"selection\":\"2026-mexico-open:top_10:player-123\",\"sport\":\"golf\"}",
+      "salt_hex": "000102030405060708090a0b0c0d0e0f",
+      "row_hash": "d176fa8fc345ecdbdb72a63d97e00d664a546f794c0bda484e6870404409fe72"
+    },
+    "millis": {
+      "prediction": {"model_version": "golf-baseline@1", "sport": "golf", "event": "2026-mexico-open", "market": "2026-mexico-open:top_10", "selection": "2026-mexico-open:top_10:player-123", "fair_prob": 0.1834, "paper_price": "6.5", "paper_book": "draftkings", "predicted_at": "2026-10-29T13:05:07.123Z", "features_summary": {"form_trend": "strong", "course_fit": "+"}},
+      "canonical": "{\"event\":\"2026-mexico-open\",\"fair_prob\":\"0.183400\",\"features_summary\":{\"course_fit\":\"+\",\"form_trend\":\"strong\"},\"market\":\"2026-mexico-open:top_10\",\"model_version\":\"golf-baseline@1\",\"paper_book\":\"draftkings\",\"paper_price\":\"6.5000\",\"predicted_at\":\"2026-10-29T13:05:07.123Z\",\"selection\":\"2026-mexico-open:top_10:player-123\",\"sport\":\"golf\"}",
+      "salt_hex": "000102030405060708090a0b0c0d0e0f",
+      "row_hash": "f5ab48cd357e6a6c049ebc97748c6e7af855c05ade898a5469a7d65150d17d2c"
+    }
+  },
+  "merkle": {
+    "roots": [
+      {"leaves": [], "root": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+      {"leaves": ["a"], "root": "022a6979e6dab7aa5ae4c3e5e45f7e977112a7e63593820dbec1ec738a24f93c"},
+      {"leaves": ["a", "b"], "root": "b137985ff484fb600db93107c77b0365c80d78f5b429ded0fd97361d077999eb"},
+      {"leaves": ["a", "b", "c"], "root": "36642e73c2540ab121e3a6bf9545b0a24982cd830eb13d3cd19de3ce6c021ec1"},
+      {"leaves": ["a", "b", "c", "d", "e"], "root": "fe14a5426fbd70c0fa73f52342afed0da0bd23c4838662ccf6b88a3070ead97b"}
+    ],
+    "inclusion": {"leaves": ["a", "b", "c", "d", "e"], "index": 2, "proof": ["d070dc5b8da9aea7dc0f5ad4c29d89965200059c9a0ceca3abd5da2492dcb71d", "b137985ff484fb600db93107c77b0365c80d78f5b429ded0fd97361d077999eb", "2824a7ccda2caa720c85c9fba1e8b5b735eecfdb03878e4f8dfe6c3625030bc4"]},
+    "chain": [
+      {"prev": "genesis", "batch_leaves": ["a", "b", "c"], "n_rows": 3, "chained": "0e25db1f2482fd0463a1adae9ff5593eef2fc01b1e03f84a08dd7e805af0843d"},
+      {"prev": "previous", "batch_leaves": ["d"], "n_rows": 1, "chained": "d7a1c5d8b8fbbb16f6b70f139f8814b6422dd0e34696c1e8d42cc7df1419d00c"}
+    ],
+    "day": [
+      {"prev": "genesis", "chained_roots": ["0e25db1f2482fd0463a1adae9ff5593eef2fc01b1e03f84a08dd7e805af0843d", "d7a1c5d8b8fbbb16f6b70f139f8814b6422dd0e34696c1e8d42cc7df1419d00c"], "day_root": "52443035b7ba469eda2dc5ec973c2b28e4d11d768e3ecc5ca6b79f9b2bb9a32a"},
+      {"prev": "previous", "chained_roots": [], "day_root": "f268f4b2a2328abb10d8923d1afa0b07d74c2c93afd2852f1f3b5bb961318182"}
+    ]
+  }
+}
