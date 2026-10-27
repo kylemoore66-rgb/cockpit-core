@@ -6,6 +6,8 @@
  * truncated (ROUND_DOWN), exactly as the Python package does. Truncation never moves a value across a
  * cent or half-cent boundary, so the final rounding to cents sees the same side of every boundary as
  * the exact value does.
+ *
+ * Results are decimal.js values: serialise them with `toFixed`, never `toString` (see `decimal.ts`).
  */
 import { Decimal as BaseDecimal } from "decimal.js";
 import { Decimal } from "./decimal.js";

@@ -10,9 +10,9 @@ One byte of drift breaks every proof, so the rules are strict:
   Anything finer is rejected (a JavaScript ``Date`` could not reproduce it).
   Publishers call :func:`to_canonical_time` first, which truncates.
 * Every string is Unicode NFC, and ``features_summary`` is a str-to-str mapping.
-* The 10 fields are serialised with RFC 8785 (JSON Canonicalization Scheme). Every
-  value is a string or a flat string mapping, so the output equals sorted-key compact
-  JSON with raw UTF-8.
+* The 10 fields are serialised with RFC 8785 (JSON Canonicalization Scheme): compact
+  JSON in raw UTF-8 with object keys sorted by their UTF-16 code units (not by code
+  points or UTF-8 bytes, which order some non-ASCII keys differently).
 """
 
 from __future__ import annotations

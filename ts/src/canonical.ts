@@ -57,7 +57,7 @@ function toDecimal(value: unknown, what: string): BaseDecimal {
   } else if (BaseDecimal.isDecimal(value)) {
     d = new Decimal(value as BaseDecimal);
   } else {
-    throw new RangeError(`${what} must be a number, Decimal or decimal string, got ${show(value)}`);
+    throw new TypeError(`${what} must be a number, Decimal or decimal string, got ${show(value)}`);
   }
   if (!d.isFinite()) throw new RangeError(`${what} must be finite, got ${show(value)}`);
   checkExponent(what, d, value); // before toDecimalPlaces expands any digits

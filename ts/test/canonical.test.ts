@@ -110,17 +110,27 @@ describe("formatting", () => {
     expect(fmtProb(1e-6)).toBe("0.000001");
   });
 
-  test.each([0, -0, -0.1, 1.5, 1.0, 0.9999999, 0.0000004, NaN, Infinity, -Infinity, true, null, undefined, "abc", "", 1n])(
+  test.each([0, -0, -0.1, 1.5, 1.0, 0.9999999, 0.0000004, NaN, Infinity, -Infinity, "abc", ""])(
     "bad probability rejected (%s)",
     (bad) => {
       expect(() => fmtProb(bad as unknown as number)).toThrow(RangeError);
     },
   );
 
-  test.each([1, 1.0, 0.5, -3, 1.00004, -0, NaN, Infinity, true, null, undefined, "abc", "", "1", "1.00004"])(
+  test.each([1, 1.0, 0.5, -3, 1.00004, -0, NaN, Infinity, "abc", "", "1", "1.00004"])(
     "bad price rejected (%s)",
     (bad) => {
       expect(() => fmtPrice(bad as unknown as number)).toThrow(RangeError);
+    },
+  );
+
+  test.each([true, false, null, undefined, 1n, {}, [], [0.5], new String("0.5"), new Number(0.5)])(
+    "a probability or price of the wrong JS type is a TypeError (%s)",
+    (bad) => {
+      expect(() => fmtProb(bad as unknown as number)).toThrow(TypeError);
+      expect(() => fmtPrice(bad as unknown as number)).toThrow(TypeError);
+      expect(() => canonicalBytes(basic({ fairProb: bad }))).toThrow(TypeError);
+      expect(() => canonicalBytes(basic({ paperPrice: bad }))).toThrow(TypeError);
     },
   );
 

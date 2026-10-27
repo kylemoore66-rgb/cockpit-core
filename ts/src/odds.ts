@@ -10,7 +10,12 @@ export function checkFloatPrice(price: unknown): number {
   return price;
 }
 
-/** Raw implied probability (1 / decimal odds, vig included). */
+/**
+ * Raw implied probability (1 / decimal odds, vig included).
+ *
+ * `implied(Infinity)` is a RangeError here, while the Python package's `implied(float("inf"))` returns 0.0
+ * (kept there for parity with the golf code it was ported from). A documented difference.
+ */
 export function implied(price: number): number {
   return 1 / checkFloatPrice(price);
 }
