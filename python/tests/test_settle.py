@@ -198,7 +198,7 @@ def test_tie_rule_from_text_non_string_raises_naming_value(bad):
 
 
 def test_settlement_matches_fixture(cases):
-    assert len(cases["settlement"]) == 10
+    assert len(cases["settlement"]) == 11
     for case in cases["settlement"]:
         s = Settlement(Fraction(case["win"]), Fraction(case["refund"]))
         got = profit(Decimal(case["stake"]), Decimal(case["price"]), s)
@@ -262,6 +262,15 @@ def test_profit_just_below_half_cent_rounds_down():
     # Mirror image on the loss side: -0.00499...9 is -0.00, and -0.005 is -0.01.
     assert profit(Decimal("0.00" + "4" + "9" * 60), Decimal(2), LOSS) == Decimal("0.00")
     assert profit(Decimal("0.005"), Decimal(2), LOSS) == Decimal("-0.01")
+
+
+def test_negative_zero_normalised_fixture(cases):
+    (case,) = [c for c in cases["settlement"] if c["name"] == "negative_zero_normalised"]
+    got = profit(
+        Decimal(case["stake"]), Decimal(case["price"]), Settlement(Fraction(case["win"]), Fraction(case["refund"]))
+    )
+    assert str(got) == "0.00"
+    assert not got.is_signed()
 
 
 def test_profit_never_returns_negative_zero():

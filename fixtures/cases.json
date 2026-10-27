@@ -6,7 +6,11 @@
     {"decimal": "1.5", "american": -200},
     {"decimal": "1.9091", "american": -110},
     {"decimal": "1.32", "american": -313, "note": "exact -312.5; half-up away from zero, not JS Math.round or banker's"},
-    {"decimal": "2.245", "american": 125, "note": "exact 124.5; banker's rounding would give 124"}
+    {"decimal": "2.245", "american": 125, "note": "exact 124.5; banker's rounding would give 124"},
+    {"decimal": "2.0", "american": 100},
+    {"american": 100, "decimal_4dp": "2.0000"},
+    {"american": -100, "decimal_4dp": "2.0000"},
+    {"decimal": "1.99", "american": -101, "note": "exact -101.0101…"}
   ],
   "edge_kelly": [
     {"fair_prob": "0.25", "price": "5.5", "edge": 0.375, "full_kelly": 0.0833333333},
@@ -33,7 +37,19 @@
     {"name": "dead_heat_1_place_3_tied", "stake": "30", "price": "6.0", "win": "1/3", "refund": "0/1", "profit": "30.00"},
     {"name": "dead_heat_negative_half_cent", "stake": "11", "price": "2.25", "win": "1/6", "refund": "0/1", "profit": "-6.88", "note": "exact -6.875; converting 1/6 to a decimal first gives -6.87"},
     {"name": "half_up_not_half_even", "stake": "10", "price": "1.8125", "win": "1/1", "refund": "0/1", "profit": "8.13", "note": "exact 8.125; half-even gives 8.12"},
-    {"name": "negative_half_cent_away_from_zero", "stake": "10", "price": "1.375", "win": "1/2", "refund": "0/1", "profit": "-3.13", "note": "exact -3.125"}
+    {"name": "negative_half_cent_away_from_zero", "stake": "10", "price": "1.375", "win": "1/2", "refund": "0/1", "profit": "-3.13", "note": "exact -3.125"},
+    {"name": "negative_zero_normalised", "stake": "0.01", "price": "2.9", "win": "1/3", "refund": "0/1", "profit": "0.00", "note": "exact -1/3000; must not print -0.00"}
+  ],
+  "precision_edge": [
+    {"name": "stake_just_under_a_cent", "kind": "stake", "fair_prob": "0.25", "price": "5.5", "bankroll": "0.999999999999999999999999999999999999999999999", "kelly_multiplier": "1", "bet_cap": "0.01", "participant_cap": "0.05", "event_cap": "0.05", "participant_exposure": "0", "event_exposure": "0", "stake": "0.00", "note": "bet cap binds at 0.00 followed by 45 nines, under one cent; a 40-digit half-even division would land on 0.01"},
+    {"name": "profit_just_below_half_cent_win", "kind": "profit", "stake": "1", "price": "1.004999999999999999999999999999999999999999999999999999999999999", "win": "1/1", "refund": "0/1", "profit": "0.00", "note": "exact 0.004 followed by 60 nines; must not be lifted onto 0.005 and rounded up"},
+    {"name": "profit_just_below_half_cent_loss", "kind": "profit", "stake": "0.004999999999999999999999999999999999999999999999999999999999999", "price": "2", "win": "0/1", "refund": "0/1", "profit": "0.00", "note": "exact -0.004 followed by 60 nines; must not become -0.01, and must not print -0.00"}
+  ],
+  "formatting": [
+    {"fn": "prob", "float": 0.1234565, "out": "0.123457"},
+    {"fn": "price", "float": 2.00005, "out": "2.0001"},
+    {"fn": "prob", "str": "0.1834", "out": "0.183400"},
+    {"fn": "price", "str": "6.5", "out": "6.5000"}
   ],
   "clv": [{"bet_price": 2.0, "fair_close_prob": 0.55, "clv": 0.0953101798}],
   "canonical": {

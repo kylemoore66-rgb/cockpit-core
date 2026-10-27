@@ -262,3 +262,14 @@ def test_int_inputs_rejected():
         fmt_prob(0)
     with pytest.raises(ValueError):
         fmt_price(2)
+
+
+def test_formatting_matches_fixture(cases):
+    section = cases["formatting"]
+    assert len(section) == 4
+    fns = {"prob": fmt_prob, "price": fmt_price}
+    for case in section:
+        (kind,) = [k for k in ("float", "str") if k in case]
+        value = case[kind]
+        assert isinstance(value, float if kind == "float" else str), case
+        assert fns[case["fn"]](value) == case["out"], case

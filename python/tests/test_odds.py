@@ -6,6 +6,7 @@ from cockpit_core.odds import american_from_decimal, decimal_from_american, impl
 
 
 def test_conversions_match_fixture(cases):
+    assert len(cases["odds_conversion"]) == 11
     checked = 0
     for case in cases["odds_conversion"]:
         american = case["american"]
