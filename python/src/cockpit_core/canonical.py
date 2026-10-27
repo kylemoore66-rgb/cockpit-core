@@ -17,6 +17,7 @@ One byte of drift breaks every proof, so the rules are strict:
 
 from __future__ import annotations
 
+import re
 import unicodedata
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -32,9 +33,18 @@ _PRICE_QUANTUM = Decimal("0.0001")
 _ZERO = Decimal(0)
 _ONE = Decimal(1)
 
+# The only number strings accepted: ASCII digits with an optional fractional part. Python's Decimal and
+# decimal.js each accept extras the other does not (whitespace, exponents, underscores, non-ASCII digits,
+# "0x1A", ".5", "5."), so both sides accept exactly this grammar and nothing else.
+_NUMBER_STRING = re.compile(r"[0-9]+(\.[0-9]+)?", re.ASCII)
+
 
 def _to_decimal(value: object, what: str) -> Decimal:
-    """Exact Decimal for a float (via repr), Decimal or str. Rejects bool, NaN, infinity."""
+    """Exact Decimal for a float (via repr), Decimal or str. Rejects bool, int, NaN and infinity.
+
+    A str must fully match ``_NUMBER_STRING``: ASCII digits, optionally a point and more digits. Ints are
+    rejected: TS numbers are mirrored by Python floats, and a Python int has no counterpart there.
+    """
     if isinstance(value, bool):
         raise ValueError(f"{what} must be a number, not bool")
     try:
@@ -43,6 +53,8 @@ def _to_decimal(value: object, what: str) -> Decimal:
         elif isinstance(value, Decimal):
             d = value
         elif isinstance(value, str):
+            if _NUMBER_STRING.fullmatch(value) is None:
+                raise ValueError(f"{what} string must match [0-9]+(.[0-9]+)?, got {value!r}")
             d = Decimal(value)
         else:
             raise ValueError(f"{what} must be float, Decimal or str, got {type(value).__name__}")

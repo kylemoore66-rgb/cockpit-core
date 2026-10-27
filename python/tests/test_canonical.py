@@ -198,3 +198,67 @@ def test_pandas_timestamp_nanoseconds_rejected():
     with pytest.raises(ValueError):
         fmt_ts(ts)
     assert fmt_ts(to_canonical_time(ts)) == "2026-10-29T13:05:07.123Z"
+
+
+# --- strict string grammar: ^[0-9]+(\.[0-9]+)?$, ASCII only, so Python and decimal.js accept the same strings ---
+
+_NON_GRAMMAR_PROBS = [
+    " 0.5",
+    "0.5\n",
+    "０.５",  # fullwidth digits
+    "٠.٥",  # Arabic-Indic digits
+    "1.834E-1",
+    "0x1A",
+    ".5",
+    "5.",
+    "+0.5",
+    "-0.5",
+    "0.18_34",
+    "",
+]
+
+_NON_GRAMMAR_PRICES = [
+    " 6.5",
+    "6.5 ",
+    "6.5\n",
+    "６.５",  # fullwidth digits
+    "٦.٥",  # Arabic-Indic digits
+    "6.5E0",
+    "65e-1",
+    "0x1A",
+    "0b101",
+    "2.",
+    "+6.5",
+    "6_5",
+    "6.5_0",
+    "Infinity",
+    "",
+]
+
+
+@pytest.mark.parametrize("bad", _NON_GRAMMAR_PROBS)
+def test_prob_string_outside_grammar_rejected(bad):
+    with pytest.raises(ValueError):
+        fmt_prob(bad)
+
+
+@pytest.mark.parametrize("bad", _NON_GRAMMAR_PRICES)
+def test_price_string_outside_grammar_rejected(bad):
+    with pytest.raises(ValueError):
+        fmt_price(bad)
+
+
+def test_grammar_strings_accepted():
+    assert fmt_prob("0.5") == "0.500000"
+    assert fmt_prob("0.1234565") == "0.123457"
+    assert fmt_price("6.5") == "6.5000"
+    assert fmt_price("6.50") == "6.5000"
+    assert fmt_price("2") == "2.0000"
+
+
+def test_int_inputs_rejected():
+    # TS numbers are mirrored by Python floats; a Python int has no TS counterpart and is rejected.
+    with pytest.raises(ValueError):
+        fmt_prob(0)
+    with pytest.raises(ValueError):
+        fmt_price(2)
