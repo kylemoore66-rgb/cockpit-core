@@ -19,7 +19,7 @@ from numbers import Integral, Rational
 from typing import Any
 
 from cockpit_core._exact import exact_money as _exact_money
-from cockpit_core._exact import to_cents
+from cockpit_core._exact import shown, to_cents
 from cockpit_core.odds import implied
 
 
@@ -158,9 +158,9 @@ def profit(stake: Decimal, price: Decimal, s: Settlement) -> Decimal:
     b = _exact_money("stake", stake)
     o = _exact_money("price", price)
     if b < 0:
-        raise ValueError(f"stake must be >= 0, got {stake!r}")
+        raise ValueError(f"stake must be >= 0, got {shown(stake)}")
     if not o > 1:
-        raise ValueError(f"price must be > 1, got {price!r}")
+        raise ValueError(f"price must be > 1, got {shown(price)}")
 
     exact = b * (s.win * o + s.refund - 1)
 

@@ -20,8 +20,14 @@ function reference(n: bigint, d: bigint): Rational {
   return k >= 0 ? { n: signed, d: 10n ** BigInt(k) } : { n: signed * 10n ** BigInt(-k), d: 1n };
 }
 
+/** Exact rational of a non-negative quotient (not exactMoney: quotients here go far past the money limit). */
+function toRational(q: { toFixed(): string }): Rational {
+  const [whole, frac = ""] = q.toFixed().split(".");
+  return { n: BigInt(whole + frac), d: 10n ** BigInt(frac.length) };
+}
+
 function sameValue(n: bigint, d: bigint): void {
-  const got = exactMoney("q", divideOnce({ n, d }).abs());
+  const got = toRational(divideOnce({ n, d }).abs());
   const want = reference(n < 0n ? -n : n, d);
   expect(got.n * want.d, `${n}/${d}`).toBe(want.n * got.d);
   if (n < 0n) expect(divideOnce({ n, d }).isNegative()).toBe(true);

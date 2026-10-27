@@ -10,7 +10,7 @@
  */
 import { Decimal as BaseDecimal } from "decimal.js";
 import type { Decimal, DecimalInput } from "./decimal.js";
-import { ONE, type Rational, add, cmp, exactMoney, mul, sub, toCents } from "./_exact.js";
+import { ONE, type Rational, add, cmp, exactMoney, mul, show, sub, toCents } from "./_exact.js";
 
 /** Exact fractions [numerator, denominator] of the stake paid at the price and refunded at evens. */
 export type Settlement = { readonly win: readonly [bigint, bigint]; readonly refund: readonly [bigint, bigint] };
@@ -63,8 +63,8 @@ export function profit(stake: DecimalInput, price: DecimalInput, s: Settlement):
   const [w, r] = checkValues(s.win, s.refund);
   const b = exactMoney("stake", stake);
   const o = exactMoney("price", price);
-  if (b.n < 0n) throw new RangeError(`stake must be >= 0, got ${String(stake)}`);
-  if (cmp(o, ONE) <= 0) throw new RangeError(`price must be > 1, got ${String(price)}`);
+  if (b.n < 0n) throw new RangeError(`stake must be >= 0, got ${show(stake)}`);
+  if (cmp(o, ONE) <= 0) throw new RangeError(`price must be > 1, got ${show(price)}`);
 
   const exact = mul(b, sub(add(mul(w, o), r), ONE));
   // The single division (precision 40, truncated) never moves a value across a half-cent boundary, so

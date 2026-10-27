@@ -18,7 +18,7 @@
 import { Decimal as BaseDecimal } from "decimal.js";
 import canonicalizeModule from "canonicalize";
 import { Decimal, type DecimalInput } from "./decimal.js";
-import { STRING_GRAMMAR } from "./_exact.js";
+import { STRING_GRAMMAR, checkExponent, show } from "./_exact.js";
 
 /** A prediction as published. Field names are camelCase here and snake_case in the canonical bytes. */
 export type CanonicalPrediction = {
@@ -45,13 +45,6 @@ const canonicalize: Canonicalize =
 /** Python's quantize runs at precision 60: a result with a longer coefficient is an error there. */
 const QUANTIZE_PRECISION = 60;
 
-function show(value: unknown): string {
-  if (typeof value === "string") return JSON.stringify(value);
-  if (typeof value === "bigint") return `${value}n`;
-  if (BaseDecimal.isDecimal(value)) return `Decimal(${(value as BaseDecimal).toString()})`;
-  return String(value);
-}
-
 function toDecimal(value: unknown, what: string): BaseDecimal {
   let d: BaseDecimal;
   if (typeof value === "number") {
@@ -67,6 +60,7 @@ function toDecimal(value: unknown, what: string): BaseDecimal {
     throw new RangeError(`${what} must be a number, Decimal or decimal string, got ${show(value)}`);
   }
   if (!d.isFinite()) throw new RangeError(`${what} must be finite, got ${show(value)}`);
+  checkExponent(what, d, value); // before toDecimalPlaces expands any digits
   return d;
 }
 
@@ -75,7 +69,7 @@ function quantize(d: BaseDecimal, dp: number, what: string): { q: BaseDecimal; t
   const q = d.toDecimalPlaces(dp, BaseDecimal.ROUND_HALF_UP);
   const text = q.toFixed(dp);
   const coefficient = text.replace(/^-/, "").replace(".", "").replace(/^0+(?=.)/, "");
-  if (coefficient.length > QUANTIZE_PRECISION) throw new RangeError(`${what} out of range: ${q.toFixed()}`);
+  if (coefficient.length > QUANTIZE_PRECISION) throw new RangeError(`${what} out of range: ${show(q.toFixed())}`);
   return { q, text };
 }
 

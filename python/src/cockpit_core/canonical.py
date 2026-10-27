@@ -26,7 +26,7 @@ from decimal import ROUND_HALF_UP, Decimal, InvalidOperation, localcontext
 
 import rfc8785
 
-from cockpit_core._exact import fresh_context
+from cockpit_core._exact import check_exponent, fresh_context, shown
 
 _PROB_QUANTUM = Decimal("0.000001")
 _PRICE_QUANTUM = Decimal("0.0001")
@@ -42,6 +42,9 @@ _NUMBER_STRING = re.compile(r"[0-9]+(\.[0-9]+)?", re.ASCII)
 def _to_decimal(value: object, what: str) -> Decimal:
     """Exact Decimal for a float (via repr), Decimal or str. Rejects bool, int, NaN and infinity.
 
+    A non-zero value whose leading digit lies beyond 10**60 or below 10**-60 is rejected from its exponent
+    alone, before quantize sees it (the shared domain limit, identical in TS).
+
     A str must fully match ``_NUMBER_STRING``: ASCII digits, optionally a point and more digits. Ints are
     rejected: TS numbers are mirrored by Python floats, and a Python int has no counterpart there.
     """
@@ -54,14 +57,15 @@ def _to_decimal(value: object, what: str) -> Decimal:
             d = value
         elif isinstance(value, str):
             if _NUMBER_STRING.fullmatch(value) is None:
-                raise ValueError(f"{what} string must match [0-9]+(.[0-9]+)?, got {value!r}")
+                raise ValueError(f"{what} string must match [0-9]+(.[0-9]+)?, got {shown(value)}")
             d = Decimal(value)
         else:
             raise ValueError(f"{what} must be float, Decimal or str, got {type(value).__name__}")
     except InvalidOperation:
-        raise ValueError(f"{what} is not a number: {value!r}") from None
+        raise ValueError(f"{what} is not a number: {shown(value)}") from None
     if not d.is_finite():
-        raise ValueError(f"{what} must be finite: {value!r}")
+        raise ValueError(f"{what} must be finite: {shown(value)}")
+    check_exponent(what, d)
     return d
 
 
@@ -70,7 +74,7 @@ def _quantize(d: Decimal, quantum: Decimal, what: str) -> Decimal:
         try:
             return d.quantize(quantum, rounding=ROUND_HALF_UP)
         except InvalidOperation:
-            raise ValueError(f"{what} out of range: {d}") from None
+            raise ValueError(f"{what} out of range: {shown(d)}") from None
 
 
 def fmt_prob(p: float | Decimal | str) -> str:
@@ -78,7 +82,7 @@ def fmt_prob(p: float | Decimal | str) -> str:
     d = _to_decimal(p, "probability")
     q = _quantize(d, _PROB_QUANTUM, "probability")
     if not _ZERO < q < _ONE:
-        raise ValueError(f"probability must be strictly between 0 and 1 at 6 dp, got {p!r}")
+        raise ValueError(f"probability must be strictly between 0 and 1 at 6 dp, got {shown(p)}")
     return f"{q:f}"
 
 
@@ -87,7 +91,7 @@ def fmt_price(o: float | Decimal | str) -> str:
     d = _to_decimal(o, "price")
     q = _quantize(d, _PRICE_QUANTUM, "price")
     if not q > _ONE:
-        raise ValueError(f"price must be greater than 1 at 4 dp, got {o!r}")
+        raise ValueError(f"price must be greater than 1 at 4 dp, got {shown(o)}")
     return f"{q:f}"
 
 

@@ -89,5 +89,22 @@
       {"prev": "genesis", "chained_roots": ["0e25db1f2482fd0463a1adae9ff5593eef2fc01b1e03f84a08dd7e805af0843d", "d7a1c5d8b8fbbb16f6b70f139f8814b6422dd0e34696c1e8d42cc7df1419d00c"], "day_root": "52443035b7ba469eda2dc5ec973c2b28e4d11d768e3ecc5ca6b79f9b2bb9a32a"},
       {"prev": "previous", "chained_roots": [], "day_root": "f268f4b2a2328abb10d8923d1afa0b07d74c2c93afd2852f1f3b5bb961318182"}
     ]
-  }
+  },
+  "domain_limits": [
+    {"name": "bankroll_at_limit_rejected", "fn": "stake", "fair_prob": "0.25", "price": "5.5", "bankroll": "1e30", "kelly_multiplier": "0.25", "bet_cap": "0.02", "participant_cap": "0.05", "event_cap": "0.05", "participant_exposure": "0", "event_exposure": "0", "error": true, "note": "|money| >= 1e30 is outside the domain"},
+    {"name": "bankroll_just_under_limit", "fn": "stake", "fair_prob": "0.25", "price": "5.5", "bankroll": "999999999999999999999999999999.99", "kelly_multiplier": "0.25", "bet_cap": "0.02", "participant_cap": "0.05", "event_cap": "0.05", "participant_exposure": "0", "event_exposure": "0", "stake": "19999999999999999999999999999.99", "note": "bet cap binds: exact 19999999999999999999999999999.9998, rounded down"},
+    {"name": "exposure_at_limit_rejected", "fn": "stake", "fair_prob": "0.25", "price": "5.5", "bankroll": "10000", "kelly_multiplier": "0.25", "bet_cap": "0.02", "participant_cap": "0.05", "event_cap": "0.05", "participant_exposure": "1e30", "event_exposure": "0", "error": true, "note": "exposures share the money limit"},
+    {"name": "price_at_limit_rejected", "fn": "stake", "fair_prob": "0.25", "price": "1e30", "bankroll": "10000", "kelly_multiplier": "0.25", "bet_cap": "0.02", "participant_cap": "0.05", "event_cap": "0.05", "participant_exposure": "0", "event_exposure": "0", "error": true, "note": "a price entering money math shares the money limit"},
+    {"name": "zero_with_huge_exponent_is_zero", "fn": "stake", "fair_prob": "0.25", "price": "5.5", "bankroll": "10000", "kelly_multiplier": "0.25", "bet_cap": "0.02", "participant_cap": "0.05", "event_cap": "0.05", "participant_exposure": "0E-100000000", "event_exposure": "0", "stake": "200.00", "note": "zero is zero whatever its exponent; only non-zero values are bounded"},
+    {"name": "profit_stake_exponent_below_limit_rejected", "fn": "profit", "stake": "1e-61", "price": "2", "win": "1/1", "refund": "0/1", "error": true, "note": "decimal exponent below -60"},
+    {"name": "profit_stake_at_exponent_limit", "fn": "profit", "stake": "1e-60", "price": "2", "win": "1/1", "refund": "0/1", "profit": "0.00", "note": "exponent -60 is allowed; exact 1e-60 rounds to 0.00"},
+    {"name": "profit_stake_huge_negative_exponent_fails_fast", "fn": "profit", "stake": "1e-100000000", "price": "2", "win": "1/1", "refund": "0/1", "error": true, "note": "rejected before any digits are expanded"},
+    {"name": "profit_price_huge_exponent_fails_fast", "fn": "profit", "stake": "1", "price": "1e20000000", "win": "1/1", "refund": "0/1", "error": true, "note": "rejected before any digits are expanded"},
+    {"name": "profit_largest_win", "fn": "profit", "stake": "999999999999999999999999999999.99", "price": "999999999999999999999999999999.99", "win": "1/1", "refund": "0/1", "profit": "999999999999999999999999999998980000000000000000000000000000.01", "note": "exact ...0.0101; the cents survive a 60-digit result"},
+    {"name": "profit_largest_loss", "fn": "profit", "stake": "999999999999999999999999999999.99", "price": "2", "win": "0/1", "refund": "0/1", "profit": "-999999999999999999999999999999.99"},
+    {"name": "fmt_price_exponent_above_limit_rejected", "fn": "fmt_price", "value": "1e61", "error": true, "note": "decimal exponent above 60"},
+    {"name": "fmt_price_huge_exponent_fails_fast", "fn": "fmt_price", "value": "1e20000000", "error": true},
+    {"name": "fmt_prob_huge_negative_exponent_fails_fast", "fn": "fmt_prob", "value": "1e-100000000", "error": true},
+    {"name": "american_price_at_limit_rejected", "fn": "american_from_decimal", "value": "1e30", "error": true}
+  ]
 }

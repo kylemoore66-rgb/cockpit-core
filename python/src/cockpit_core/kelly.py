@@ -10,7 +10,7 @@ from decimal import ROUND_DOWN, Decimal
 from fractions import Fraction
 
 from cockpit_core._exact import exact_money as _exact
-from cockpit_core._exact import to_cents
+from cockpit_core._exact import shown, to_cents
 from cockpit_core.odds import implied
 
 
@@ -55,7 +55,7 @@ class StakeSettings:
         for name in ("kelly_multiplier", "bet_cap", "participant_cap", "event_cap"):
             value = _exact(name, getattr(self, name))
             if not 0 <= value <= 1:
-                raise ValueError(f"{name} must be in [0, 1], got {getattr(self, name)!r}")
+                raise ValueError(f"{name} must be in [0, 1], got {shown(getattr(self, name))}")
 
 
 def size_stake(
@@ -83,11 +83,11 @@ def size_stake(
     participant_used = _exact("participant_exposure", participant_exposure)
     event_used = _exact("event_exposure", event_exposure)
     if not 0 < p < 1:
-        raise ValueError(f"fair_prob must be strictly between 0 and 1, got {fair_prob!r}")
+        raise ValueError(f"fair_prob must be strictly between 0 and 1, got {shown(fair_prob)}")
     if not o > 1:
-        raise ValueError(f"price must be > 1, got {price!r}")
+        raise ValueError(f"price must be > 1, got {shown(price)}")
     if b < 0:
-        raise ValueError(f"bankroll must be >= 0, got {bankroll!r}")
+        raise ValueError(f"bankroll must be >= 0, got {shown(bankroll)}")
     if participant_used < 0 or event_used < 0:
         raise ValueError("exposures must be >= 0")
 

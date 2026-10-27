@@ -8,7 +8,7 @@
 import { Decimal as BaseDecimal } from "decimal.js";
 import { Decimal, type DecimalInput } from "./decimal.js";
 import { checkFloatPrice } from "./odds.js";
-import { ONE, ZERO, type Rational, cmp, div, exactMoney, max, min, mul, sub, toCents } from "./_exact.js";
+import { ONE, ZERO, type Rational, cmp, div, exactMoney, max, min, mul, show, sub, toCents } from "./_exact.js";
 
 function checkFloatProb(fairProb: unknown): number {
   if (typeof fairProb !== "number" || !(fairProb > 0 && fairProb < 1)) {
@@ -63,7 +63,7 @@ function checkSettings(settings: unknown): Record<(typeof SETTING_KEYS)[number],
   const out = {} as Record<(typeof SETTING_KEYS)[number], Rational>;
   for (const k of SETTING_KEYS) {
     const v = exactMoney(k, settings[k]);
-    if (cmp(v, ZERO) < 0 || cmp(v, ONE) > 0) throw new RangeError(`${k} must be in [0, 1], got ${String(settings[k])}`);
+    if (cmp(v, ZERO) < 0 || cmp(v, ONE) > 0) throw new RangeError(`${k} must be in [0, 1], got ${show(settings[k])}`);
     out[k] = v;
   }
   return out;
@@ -96,10 +96,10 @@ export function sizeStake(args: {
   const participantUsed = exactMoney("participantExposure", args.participantExposure);
   const eventUsed = exactMoney("eventExposure", args.eventExposure);
   if (!(cmp(p, ZERO) > 0 && cmp(p, ONE) < 0)) {
-    throw new RangeError(`fairProb must be strictly between 0 and 1, got ${String(args.fairProb)}`);
+    throw new RangeError(`fairProb must be strictly between 0 and 1, got ${show(args.fairProb)}`);
   }
-  if (cmp(o, ONE) <= 0) throw new RangeError(`price must be > 1, got ${String(args.price)}`);
-  if (cmp(b, ZERO) < 0) throw new RangeError(`bankroll must be >= 0, got ${String(args.bankroll)}`);
+  if (cmp(o, ONE) <= 0) throw new RangeError(`price must be > 1, got ${show(args.price)}`);
+  if (cmp(b, ZERO) < 0) throw new RangeError(`bankroll must be >= 0, got ${show(args.bankroll)}`);
   if (cmp(participantUsed, ZERO) < 0 || cmp(eventUsed, ZERO) < 0) throw new RangeError("exposures must be >= 0");
 
   const raw = div(mul(mul(b, s.kellyMultiplier), sub(mul(p, o), ONE)), sub(o, ONE));

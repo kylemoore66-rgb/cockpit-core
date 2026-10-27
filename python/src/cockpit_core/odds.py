@@ -5,7 +5,7 @@ from decimal import Decimal
 from enum import StrEnum
 from fractions import Fraction
 
-from cockpit_core._exact import divide_once
+from cockpit_core._exact import divide_once, exact_money, shown
 
 
 class Method(StrEnum):
@@ -42,11 +42,11 @@ def american_from_decimal(o: Decimal) -> int:
     """American odds for decimal odds: o >= 2 gives (o - 1) * 100, o < 2 gives -100 / (o - 1).
 
     Computed exactly as a Fraction and rounded half away from zero to an int (never round(),
-    which is banker's rounding). o <= 1 raises.
+    which is banker's rounding). o <= 1 raises, and so does o >= 1e30 (the shared money limit).
     """
     if isinstance(o, bool) or not isinstance(o, Decimal) or not o.is_finite() or not o > 1:
-        raise ValueError(f"decimal odds must be a finite Decimal > 1, got {o!r}")
-    profit = Fraction(o) - 1
+        raise ValueError(f"decimal odds must be a finite Decimal > 1, got {shown(o)}")
+    profit = exact_money("decimal odds", o) - 1
     exact = profit * 100 if o >= 2 else -100 / profit
     magnitude = math.floor(abs(exact) + Fraction(1, 2))
     return -magnitude if exact < 0 else magnitude
