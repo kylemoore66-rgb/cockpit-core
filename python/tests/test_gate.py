@@ -1,8 +1,11 @@
 import copy
+from importlib.resources import files
+from pathlib import Path
 
 import pytest
 from jsonschema import ValidationError
 
+from cockpit_core import gate
 from cockpit_core.gate import criteria_hash, validate_criteria
 
 VALID = {
@@ -128,3 +131,15 @@ def test_boundary_values_accepted():
     c["test"]["ci_level"] = 0.999
     c["close_age_limit_seconds"] = 1
     validate_criteria(c)
+
+
+def test_packaged_schema_is_byte_equal_to_repo_schema():
+    """The package ships its own copy of the schema; it must never drift from the repo-root file."""
+    repo_schema = Path(__file__).parents[2] / "schemas" / "gate-criteria.schema.json"
+    packaged = files("cockpit_core").joinpath("gate-criteria.schema.json")
+    assert packaged.is_file(), "cockpit_core/gate-criteria.schema.json is missing from the package"
+    assert packaged.read_bytes() == repo_schema.read_bytes()
+
+
+def test_gate_reads_only_the_packaged_schema():
+    assert not hasattr(gate, "_CANDIDATES"), "no repo-root fallback: the package copy is the only source"

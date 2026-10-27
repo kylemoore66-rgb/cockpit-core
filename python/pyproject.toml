@@ -2,9 +2,14 @@
 name = "cockpit-core"
 version = "0.1.0"
 description = "Open betting math and track-record proofs behind Cockpit"
-license = { text = "MIT" }
-requires-python = ">=3.13,<3.14"
-dependencies = ["rfc8785>=0.1.4", "jsonschema>=4.23"]
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.13"
+dependencies = ["rfc8785>=0.1.4,<0.2", "jsonschema>=4.23"]
+
+[project.urls]
+Repository = "https://github.com/kylemoore66-rgb/cockpit-core"
 
 [project.optional-dependencies]
 stats = ["numpy>=2.5.4"]
@@ -16,14 +21,11 @@ cockpit-verify = "cockpit_core.verify:main"
 dev = ["pytest", "ruff", "numpy>=2.5.4"]
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling>=1.27"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/cockpit_core"]
-
-[tool.hatch.build.targets.wheel.force-include]
-"../schemas/gate-criteria.schema.json" = "cockpit_core/gate-criteria.schema.json"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -3,16 +3,29 @@
   "version": "0.1.0",
   "description": "Open betting math and track-record proofs behind Cockpit",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kylemoore66-rgb/cockpit-core.git",
+    "directory": "ts"
+  },
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "test": "vitest run",
@@ -20,7 +33,7 @@
   },
   "dependencies": {
     "@noble/hashes": "^2.0.0",
-    "canonicalize": "^2.0.0",
+    "canonicalize": "~2.1.0",
     "decimal.js": "^10.4.3"
   },
   "devDependencies": {

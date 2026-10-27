@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kylemoore66-rgb/cockpit-core/schemas/gate-criteria.schema.json",
+  "title": "Cockpit gate criteria",
+  "description": "Pre-registered success criteria for a model's shadow period. The RFC 8785 SHA-256 of a valid document is committed publicly before the shadow period begins.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "counted_prediction",
+    "paper_price_rule",
+    "clv_reference",
+    "close_age_limit_seconds",
+    "min_picks",
+    "min_events",
+    "test"
+  ],
+  "properties": {
+    "counted_prediction": {
+      "enum": ["last_committed_before_close"]
+    },
+    "paper_price_rule": {
+      "type": "string",
+      "minLength": 1
+    },
+    "clv_reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["books", "method"],
+      "properties": {
+        "books": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 2
+        },
+        "method": {
+          "enum": ["multiplicative", "power", "shin"]
+        }
+      }
+    },
+    "close_age_limit_seconds": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "min_picks": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "min_events": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "test": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "alpha", "ci_level"],
+      "properties": {
+        "name": {
+          "enum": ["cluster_bootstrap_mean_clv"]
+        },
+        "alpha": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 0.5
+        },
+        "ci_level": {
+          "type": "number",
+          "exclusiveMinimum": 0.5,
+          "exclusiveMaximum": 1
+        }
+      }
+    },
+    "notes": {
+      "type": "string"
+    }
+  }
+}
