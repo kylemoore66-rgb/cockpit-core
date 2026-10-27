@@ -25,6 +25,8 @@ from decimal import ROUND_HALF_UP, Decimal, InvalidOperation, localcontext
 
 import rfc8785
 
+from cockpit_core._exact import fresh_context
+
 _PROB_QUANTUM = Decimal("0.000001")
 _PRICE_QUANTUM = Decimal("0.0001")
 _ZERO = Decimal(0)
@@ -52,8 +54,7 @@ def _to_decimal(value: object, what: str) -> Decimal:
 
 
 def _quantize(d: Decimal, quantum: Decimal, what: str) -> Decimal:
-    with localcontext() as ctx:
-        ctx.prec = 60
+    with localcontext(fresh_context(60)):  # fresh: the caller's traps and rounding never apply
         try:
             return d.quantize(quantum, rounding=ROUND_HALF_UP)
         except InvalidOperation:

@@ -5,12 +5,12 @@ Decimals, computes exactly with Fractions, divides once at the end and rounds th
 """
 
 from dataclasses import dataclass
-from decimal import ROUND_DOWN, Decimal, localcontext
+from decimal import ROUND_DOWN, Decimal
 from fractions import Fraction
 
+from cockpit_core._exact import exact_money as _exact
+from cockpit_core._exact import to_cents
 from cockpit_core.odds import implied
-
-_CENT = Decimal("0.01")
 
 
 def _check_float_prob(fair_prob: float) -> float:
@@ -34,13 +34,6 @@ def full_kelly(fair_prob: float, price: float) -> float:
     """Full-Kelly fraction of bankroll: max(0, (p * o - 1) / (o - 1))."""
     e = edge(fair_prob, price)
     return max(0.0, e / (price - 1.0))
-
-
-def _exact(name: str, value: Decimal) -> Fraction:
-    """Exact Fraction of a finite Decimal; anything else (float, int, bool, NaN, inf) raises."""
-    if not isinstance(value, Decimal) or not value.is_finite():
-        raise ValueError(f"{name} must be a finite Decimal, got {value!r}")
-    return Fraction(str(value))
 
 
 @dataclass(frozen=True)
@@ -107,10 +100,6 @@ def size_stake(
         ),
     )
 
-    # The single division. ROUND_DOWN here too, so truncating to 40 digits can never lift a value
+    # The single division, in a fresh context. It truncates to 40 digits, so it can never lift a value
     # just under a cent boundary up onto it before the final round-down to cents.
-    with localcontext() as ctx:
-        ctx.prec = 40
-        ctx.rounding = ROUND_DOWN
-        stake = Decimal(exact.numerator) / Decimal(exact.denominator)
-        return stake.quantize(_CENT, rounding=ROUND_DOWN)
+    return to_cents(exact, ROUND_DOWN)

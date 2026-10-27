@@ -12,15 +12,15 @@ half-up (away from zero) to cents. `unit_profit` is the float helper for researc
 import math
 from collections.abc import Sequence
 from dataclasses import dataclass
-from decimal import ROUND_DOWN, ROUND_HALF_UP, Decimal, localcontext
+from decimal import ROUND_HALF_UP, Decimal
 from enum import StrEnum
 from fractions import Fraction
 from numbers import Integral, Rational
 from typing import Any
 
+from cockpit_core._exact import exact_money as _exact_money
+from cockpit_core._exact import to_cents
 from cockpit_core.odds import implied
-
-_CENT = Decimal("0.01")
 
 
 class TieRule(StrEnum):
@@ -143,13 +143,6 @@ def matchup_settlement(ranks: Sequence[int | None], pick: int, rule: TieRule | s
     raise ValueError(f"unhandled tie rule: {rule!r}")  # unreachable: every TieRule is handled above
 
 
-def _exact_money(name: str, value: Decimal) -> Fraction:
-    """Exact Fraction of a finite Decimal; anything else (float, int, bool, NaN, inf) raises."""
-    if not isinstance(value, Decimal) or not value.is_finite():
-        raise ValueError(f"{name} must be a finite Decimal, got {value!r}")
-    return Fraction(str(value))
-
-
 def _check_settlement(s: Settlement) -> None:
     if not isinstance(s, Settlement):
         raise TypeError(f"s must be a Settlement, got {s!r}")
@@ -175,11 +168,8 @@ def profit(stake: Decimal, price: Decimal, s: Settlement) -> Decimal:
     # half-cent boundary: a value at or past a boundary stays at or past it (the boundary itself has
     # few digits, so truncation stops on it at worst), and a value short of one only gets shorter.
     # So the final half-up rounding sees the same side of every boundary as the exact value does.
-    with localcontext() as ctx:
-        ctx.prec = 40
-        ctx.rounding = ROUND_DOWN
-        value = Decimal(exact.numerator) / Decimal(exact.denominator)
-        cents = value.quantize(_CENT, rounding=ROUND_HALF_UP)
+    # Both steps run in a fresh context, whatever the caller's decimal settings.
+    cents = to_cents(exact, ROUND_HALF_UP)
     return cents if cents != 0 else Decimal("0.00")  # no "-0.00"
 
 

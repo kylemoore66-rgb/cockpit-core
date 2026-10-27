@@ -1,9 +1,11 @@
 """Odds basics: implied probability and American/decimal conversion."""
 
 import math
-from decimal import Decimal, localcontext
+from decimal import Decimal
 from enum import StrEnum
 from fractions import Fraction
+
+from cockpit_core._exact import divide_once
 
 
 class Method(StrEnum):
@@ -27,14 +29,13 @@ def implied(decimal_odds: float | None) -> float:
 def decimal_from_american(a: int) -> Decimal:
     """Decimal odds for American odds: +a gives 1 + a/100, -a gives 1 + 100/a.
 
-    Computed exactly as a Fraction and divided once, at precision 40. |a| < 100 raises.
+    Computed exactly as a Fraction and divided once, at precision 40 truncated (ROUND_DOWN), in a fresh
+    decimal context whatever the caller's settings. |a| < 100 raises.
     """
     if isinstance(a, bool) or not isinstance(a, int) or abs(a) < 100:
         raise ValueError(f"American odds must be an int with |a| >= 100, got {a!r}")
     exact = 1 + Fraction(a, 100) if a > 0 else 1 + Fraction(100, -a)
-    with localcontext() as ctx:
-        ctx.prec = 40
-        return Decimal(exact.numerator) / Decimal(exact.denominator)
+    return divide_once(exact)
 
 
 def american_from_decimal(o: Decimal) -> int:
