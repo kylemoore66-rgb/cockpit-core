@@ -4,6 +4,7 @@
 Decimals, computes exactly with Fractions, divides once at the end and rounds the stake DOWN to cents.
 """
 
+import math
 from dataclasses import dataclass
 from decimal import ROUND_DOWN, Decimal
 from fractions import Fraction
@@ -24,9 +25,11 @@ def _check_float_prob(fair_prob: float) -> float:
 
 
 def edge(fair_prob: float, price: float) -> float:
-    """Expected profit per unit staked: p * o - 1."""
+    """Expected profit per unit staked: p * o - 1. The price must be finite and > 1."""
     p = _check_float_prob(fair_prob)
     implied(price)  # validates the price (> 1, not bool/None/NaN)
+    if not math.isfinite(price):  # implied(inf) is 0.0 (kept for golf parity), but an infinite price is no price
+        raise ValueError(f"decimal odds must be finite, got {price!r}")
     return p * price - 1.0
 
 

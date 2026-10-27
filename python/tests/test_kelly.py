@@ -3,6 +3,7 @@ from decimal import Decimal
 import pytest
 
 from cockpit_core.kelly import StakeSettings, edge, full_kelly, size_stake
+from cockpit_core.odds import implied
 
 
 def _stake_kwargs(case: dict) -> dict:
@@ -147,3 +148,16 @@ def test_default_settings():
         Decimal("0.05"),
         Decimal("0.05"),
     )
+
+
+@pytest.mark.parametrize("o", [float("inf"), float("-inf")])
+def test_non_finite_price_rejected_by_float_helpers(o):
+    # full_kelly(p, inf) used to return 0.0 (inf / inf is NaN and max(0, NaN) is 0); JS would give NaN.
+    with pytest.raises(ValueError):
+        edge(0.5, o)
+    with pytest.raises(ValueError):
+        full_kelly(0.5, o)
+
+
+def test_implied_still_accepts_infinity_for_golf_parity():
+    assert implied(float("inf")) == 0.0
