@@ -313,3 +313,27 @@ def test_unit_profit_is_w_times_o_plus_r_minus_one():
 
 def test_tie_rule_values():
     assert [r.value for r in TieRule] == ["void", "dead_heat", "loses"]
+
+
+@pytest.mark.parametrize("rule", list(TieRule))
+@pytest.mark.parametrize(
+    "ranks,pick", [((1, 1), 0), ((1, 1, 1), 2), ((1, 1, 3), 1), ((1, 2), 0), ((2, 1), 0), ((1, None), 0)]
+)
+def test_str_tie_rule_settles_like_enum(rule, ranks, pick):
+    # A rule read back from JSON or the database is a plain str; it must never fall through to a loss.
+    assert type(rule.value) is str
+    assert matchup_settlement(ranks, pick, rule.value) == matchup_settlement(ranks, pick, rule)
+
+
+def test_str_tie_rule_tied_best_outcomes():
+    assert matchup_settlement((1, 1), 0, "void") == VOID
+    assert matchup_settlement((1, 1), 0, "dead_heat") == Settlement(Fraction(1, 2), Fraction(0))
+    assert matchup_settlement((1, 1), 0, "loses") == LOSS
+
+
+@pytest.mark.parametrize("bad", ["coin flip", "", "VOID", None, 1])
+def test_unknown_tie_rule_raises(bad):
+    with pytest.raises(ValueError):
+        matchup_settlement((1, 1), 0, bad)
+    with pytest.raises(ValueError):
+        matchup_settlement((1, 2), 0, bad)  # fail closed even when the rule would not be consulted

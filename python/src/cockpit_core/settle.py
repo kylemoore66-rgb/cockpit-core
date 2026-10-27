@@ -105,14 +105,21 @@ def _check_rank(r: Any) -> int:
     return int(r)
 
 
-def matchup_settlement(ranks: Sequence[int | None], pick: int, rule: TieRule) -> Settlement:
+def matchup_settlement(ranks: Sequence[int | None], pick: int, rule: TieRule | str) -> Settlement:
     """Settlement of a 2-ball or 3-ball pick.
 
     ranks are within-group ranks (lowest is best, ties share a rank, None = withdrawn or disqualified).
     Any None voids the bet. A pick beaten by anyone loses; a unique best wins. A tie for best rank
     among k players settles by the tie rule: VOID voids, DEAD_HEAT pays 1/k, LOSES loses. Any other
     non-integer rank (NaN, numpy masked, a float, a bool) or a rank below 1 raises.
+
+    `rule` may be a TieRule or its plain string value (as read back from JSON or a database); any
+    other value raises, even when the bet has no tie, so a bad rule never settles silently.
     """
+    try:
+        rule = TieRule(rule)
+    except ValueError:
+        raise ValueError(f"unknown tie rule: {rule!r}") from None
     if not 2 <= len(ranks) <= 3:
         raise ValueError(f"matchup needs 2 or 3 players, got {len(ranks)}")
     if not 0 <= pick < len(ranks):
@@ -131,7 +138,9 @@ def matchup_settlement(ranks: Sequence[int | None], pick: int, rule: TieRule) ->
         return VOID
     if rule is TieRule.DEAD_HEAT:
         return dead_heat(1, k)
-    return LOSS
+    if rule is TieRule.LOSES:
+        return LOSS
+    raise ValueError(f"unhandled tie rule: {rule!r}")  # unreachable: every TieRule is handled above
 
 
 def _exact_money(name: str, value: Decimal) -> Fraction:
