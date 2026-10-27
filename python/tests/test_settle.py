@@ -105,6 +105,22 @@ def test_matchup_bad_pick_index_rejected(pick):
         matchup_settlement((1, 2), pick, VOID_RULE)
 
 
+@pytest.mark.parametrize(
+    "pick",
+    [True, False, 0.0, 1.0, np.float64(0.0), "0", None, Fraction(0), Decimal(0), np.True_],
+    ids=repr,
+)
+def test_matchup_pick_must_be_an_integer_not_bool(pick):
+    # True used to settle as pick 1 and 0.0 raised a raw TypeError from list indexing
+    with pytest.raises(ValueError, match="pick"):
+        matchup_settlement((1, 2), pick, VOID_RULE)
+
+
+def test_matchup_numpy_integer_pick_works():
+    assert matchup_settlement((2, 1), np.int64(1), VOID_RULE) == WIN
+    assert matchup_settlement((1, 2, 3), np.int32(2), VOID_RULE) == LOSS
+
+
 @pytest.mark.parametrize("odds", [1.0, 0.5, float("nan")])
 def test_matchup_odds_must_exceed_one(odds):
     with pytest.raises(ValueError):

@@ -115,6 +115,9 @@ def matchup_settlement(ranks: Sequence[int | None], pick: int, rule: TieRule | s
 
     `rule` may be a TieRule or its plain string value (as read back from JSON or a database); any
     other value raises, even when the bet has no tie, so a bad rule never settles silently.
+
+    `pick` is the 0-based index of the backed player: an integer (Python or numpy int; never a bool,
+    float or string) in range for the group, or ValueError.
     """
     try:
         rule = TieRule(rule)
@@ -122,6 +125,9 @@ def matchup_settlement(ranks: Sequence[int | None], pick: int, rule: TieRule | s
         raise ValueError(f"unknown tie rule: {rule!r}") from None
     if not 2 <= len(ranks) <= 3:
         raise ValueError(f"matchup needs 2 or 3 players, got {len(ranks)}")
+    if isinstance(pick, bool) or not isinstance(pick, Integral):
+        raise ValueError(f"pick must be an integer index, got {shown(pick)}")  # noqa: TRY004 (contract: ValueError)
+    pick = int(pick)
     if not 0 <= pick < len(ranks):
         raise ValueError(f"pick {pick} out of range for {len(ranks)} players")
     checked = [None if r is None else _check_rank(r) for r in ranks]
