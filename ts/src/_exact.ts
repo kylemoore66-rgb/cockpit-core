@@ -17,7 +17,7 @@ export const DIVISION_PRECISION = 40;
 
 const Div = BaseDecimal.clone({ precision: DIVISION_PRECISION, rounding: BaseDecimal.ROUND_DOWN });
 
-const STRING_GRAMMAR = /^[0-9]+(\.[0-9]+)?$/;
+export const STRING_GRAMMAR = /^[0-9]+(\.[0-9]+)?$/;
 const SIGNED_GRAMMAR = /^(-?)([0-9]+)(?:\.([0-9]+))?$/;
 
 export const ZERO: Rational = { n: 0n, d: 1n };
