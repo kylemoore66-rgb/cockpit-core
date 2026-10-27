@@ -1,4 +1,5 @@
 import json
+import time
 from pathlib import Path
 
 import rfc8785
@@ -250,3 +251,70 @@ def test_cli_bad_anchors_file_and_usage_errors_exit_1(tmp_path):
     assert main([str(path), "--anchors", str(bad)]) == 1
     assert main([str(path), "--anchors", str(tmp_path / "missing.json")]) == 1
     assert main([]) == 1  # never 2: 2 means "consistent but unanchored"
+
+
+def test_hostile_row_index_fails_fast_with_bounded_message(tmp_path):
+    path, _ = write_bundle(tmp_path, NOTES)
+    rows = read_jsonl(path / "rows.jsonl")
+    rows[1]["index"] = 10**18
+    write_jsonl(path / "rows.jsonl", rows)
+
+    start = time.perf_counter()
+    report = verify_bundle(path)
+    assert time.perf_counter() - start < 2
+    assert not report.ok
+    assert any(e.startswith("batch 1:") and "index" in e for e in report.errors), report.errors
+    assert len(_errors(report)) < 5000
+
+
+def test_row_index_beyond_u64_rejected_at_parse(tmp_path):
+    path, _ = write_bundle(tmp_path, NOTES)
+    rows = read_jsonl(path / "rows.jsonl")
+    rows[1]["index"] = 2**64
+    write_jsonl(path / "rows.jsonl", rows)
+
+    report = verify_bundle(path)
+    assert not report.ok
+    assert "rows.jsonl line 2" in _errors(report)
+    assert len(_errors(report)) < 5000
+
+
+def test_many_bad_indexes_message_is_capped(tmp_path):
+    path, _ = write_bundle(tmp_path, [[str(i) for i in range(60)]])
+    rows = read_jsonl(path / "rows.jsonl")
+    for r in rows:
+        r["index"] = 0  # 60 duplicates, 59 missing
+    write_jsonl(path / "rows.jsonl", rows)
+
+    report = verify_bundle(path)
+    assert not report.ok
+    index_errors = [e for e in report.errors if "indexes" in e]
+    assert len(index_errors) == 1
+    assert "..." in index_errors[0]
+    assert len(index_errors[0]) < 600
+
+
+def test_truncated_bundle_fails_against_later_anchors(tmp_path, capsys):
+    _, true_anchors = write_bundle(tmp_path / "full", [["a"], ["b"], ["c"]])
+    truncated, _ = write_bundle(tmp_path / "cut", [["a"], ["b"]])  # correctly rebuilt, batch 3 withheld
+
+    report = verify_bundle(truncated, true_anchors)
+    assert not report.ok
+    assert not report.anchored
+    assert any(e.startswith("batch 3:") for e in report.errors), report.errors
+
+    anchors_file = _write_anchors(tmp_path, true_anchors)
+    assert main([str(truncated), "--anchors", str(anchors_file)]) == 1
+    out = capsys.readouterr().out
+    assert "anchored: no" in out
+    assert "batch 3" in out
+
+
+def test_failed_bundle_is_never_anchored(tmp_path):
+    path, anchors = write_bundle(tmp_path, NOTES)
+    with (path / "rows.jsonl").open("a", encoding="utf-8") as f:
+        f.write("{not json\n")  # a failure that leaves the recomputed chain matching every anchor
+
+    report = verify_bundle(path, anchors)
+    assert not report.ok
+    assert not report.anchored

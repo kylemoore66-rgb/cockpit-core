@@ -15,7 +15,12 @@ every root. Proof comes from **anchors**, the chained roots recorded independent
 (in Rekor or OpenTimestamps). Here anchors are passed in as ``{batch_seq: chained_root_hex}``.
 The chained root commits to each batch's row count, so an anchor pins both the rows and how
 many there are. Only the final batch's anchor makes the report ``anchored``, because only it
-covers every batch.
+covers every batch, and a report that is not ``ok`` is never ``anchored``.
+
+Limit of caller-supplied anchors: if the anchors given stop at batch k, a bundle truncated to
+batches 1..k (with batches k+1.. withheld) verifies as anchored. Anchors only prove what they
+cover. The latest anchor must therefore come from independently fetched receipts (Phase 1C),
+never from the bundle's owner.
 
 Exit codes: 0 only when consistent and anchored; 2 when consistent but unanchored; 1 otherwise
 (including usage errors, so a typo can never look like a verdict).
@@ -33,6 +38,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
+from typing import NoReturn
 
 import rfc8785
 
@@ -203,8 +209,8 @@ def _parse_row(n: int, record: object, errors: list[str]) -> _Row | None:
         return None
     assert isinstance(record, dict)
     seq, index = record["batch_seq"], record["index"]
-    if not _is_int(seq) or not _is_int(index) or index < 0:
-        errors.append(f"rows.jsonl line {n}: batch_seq and index must be integers, index >= 0")
+    if not (_is_int(seq) and _is_int(index) and 0 <= seq <= _U64_MAX and 0 <= index <= _U64_MAX):
+        errors.append(f"rows.jsonl line {n}: batch_seq and index must be integers in [0, 2**64)")
         return None
     where = f"batch {seq} row {index}"
     bad = []
@@ -227,8 +233,8 @@ def _parse_batch(n: int, record: object, errors: list[str]) -> _Batch | None:
         return None
     assert isinstance(record, dict)
     seq = record["batch_seq"]
-    if not _is_int(seq):
-        errors.append(f"batches.jsonl line {n}: batch_seq must be an integer")
+    if not _is_int(seq) or not 0 <= seq <= _U64_MAX:
+        errors.append(f"batches.jsonl line {n}: batch_seq must be an integer in [0, 2**64)")
         return None
     where = f"batch {seq}"
     bad = []
@@ -345,15 +351,33 @@ def _check_canonical(text: str, model_version: str | None) -> tuple[list[str], b
 # --- the verifier ---------------------------------------------------------------------
 
 
+_MAX_LISTED = 20
+
+
+def _listed(items: list[int]) -> str:
+    """At most ``_MAX_LISTED`` items, so a hostile bundle cannot blow up the error text."""
+    shown = ", ".join(str(i) for i in items[:_MAX_LISTED])
+    return f"[{shown}, ... {len(items)} in all]" if len(items) > _MAX_LISTED else f"[{shown}]"
+
+
 def _index_problem(indexes: list[int]) -> str | None:
-    """Check 4: the indexes (sorted) must be exactly 0..n-1."""
-    if indexes == list(range(len(indexes))):
+    """Check 4: the indexes (sorted) must be exactly 0..n-1.
+
+    Work and message size depend only on the number of rows, never on the index values:
+    an index of 10**18 is reported as out of range, not expanded into a range.
+    """
+    n = len(indexes)
+    if indexes == list(range(n)):
         return None
-    counts = Counter(indexes)
+    in_range = [i for i in indexes if i < n]
+    out_of_range = sorted(i for i in indexes if i >= n)
+    counts = Counter(in_range)
     dups = sorted(i for i, c in counts.items() if c > 1)
-    top = max(len(indexes), max(indexes) + 1)
-    missing = sorted(set(range(top)) - set(indexes))
-    return f"row indexes are not exactly 0..{len(indexes) - 1} (duplicated {dups}, missing {missing})"
+    missing = sorted(set(range(n)) - set(in_range))
+    return (
+        f"row indexes are not exactly 0..{n - 1} (duplicated {_listed(dups)}, missing {_listed(missing)}, "
+        f"out of range {_listed(out_of_range)})"
+    )
 
 
 def verify_bundle(path: Path, anchors: Mapping[int, str] | None = None) -> VerifyReport:
@@ -458,7 +482,8 @@ def verify_bundle(path: Path, anchors: Mapping[int, str] | None = None) -> Verif
 
     final_seq = seqs[-1] if seqs else None
     final_root = chain[final_seq] if final_seq is not None else None
-    anchored = final_root is not None and anchor_roots.get(final_seq) == final_root  # type: ignore[arg-type]
+    # never anchored when anything failed: that includes an anchor for a batch beyond the bundle's final one
+    anchored = not errors and final_root is not None and anchor_roots.get(final_seq) == final_root  # type: ignore[arg-type]
     return VerifyReport(
         ok=not errors,
         anchored=anchored,
@@ -473,7 +498,7 @@ def verify_bundle(path: Path, anchors: Mapping[int, str] | None = None) -> Verif
 
 
 class _ArgumentParser(argparse.ArgumentParser):
-    def exit(self, status: int = 0, message: str | None = None) -> None:
+    def exit(self, status: int = 0, message: str | None = None) -> NoReturn:
         # usage errors (argparse uses 2) and --help must never look like a verdict: always exit 1
         if message:
             self._print_message(message)

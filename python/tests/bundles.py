@@ -55,7 +55,7 @@ def write_bundle(
 ) -> tuple[Path, dict[int, str]]:
     """Write a true bundle (one batch per inner list, one row per note) and return it with its anchors."""
     path = tmp_path / "bundle"
-    path.mkdir()
+    path.mkdir(parents=True)
     rows = []
     for seq, notes in enumerate(batches, start=1):
         for i, note in enumerate(notes):
