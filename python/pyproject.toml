@@ -22,6 +22,9 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src/cockpit_core"]
 
+[tool.hatch.build.targets.wheel.force-include]
+"../schemas/gate-criteria.schema.json" = "cockpit_core/gate-criteria.schema.json"
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 
