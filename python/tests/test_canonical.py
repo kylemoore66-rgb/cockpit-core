@@ -1,3 +1,4 @@
+import hashlib
 import json
 import unicodedata
 from datetime import UTC, datetime, timedelta, timezone
@@ -148,3 +149,52 @@ def test_rfc8785_agrees_with_sorted_compact_json(cases):
             "utf-8"
         )
         assert rfc8785.dumps(obj) == canonical_bytes(_build(fx["prediction"]))
+
+
+def test_canonical_millis_row_hash(cases):
+    fx = cases["canonical"]["millis"]
+    out = canonical_bytes(_build(fx["prediction"]))
+    assert hashlib.sha256(bytes.fromhex(fx["salt_hex"]) + out).hexdigest() == fx["row_hash"]
+
+
+def test_numpy_float64_accepted_like_float():
+    np = pytest.importorskip("numpy")
+    assert fmt_prob(np.float64(0.1834)) == "0.183400"
+    assert fmt_prob(np.float64(0.1234565)) == "0.123457"
+    assert fmt_price(np.float64(6.5)) == "6.5000"
+    assert fmt_price(np.float64(2.00005)) == "2.0001"
+    with pytest.raises(ValueError):
+        fmt_prob(np.float64("nan"))
+    with pytest.raises(ValueError):
+        fmt_prob(np.float64(1.0))
+
+
+class _NanosecondDatetime(datetime):
+    """Stand-in for pandas.Timestamp, which keeps nanoseconds outside .microsecond."""
+
+    nanosecond = 500
+
+
+def _ns_dt(tz=UTC) -> datetime:
+    return _NanosecondDatetime(2026, 10, 29, 13, 5, 7, 123000, tzinfo=tz)
+
+
+def test_nanoseconds_rejected_not_dropped():
+    with pytest.raises(ValueError):
+        fmt_ts(_ns_dt())
+
+
+def test_to_canonical_time_truncates_nanoseconds():
+    for tz in (UTC, timezone(timedelta(hours=2))):
+        out = to_canonical_time(_ns_dt(tz))
+        assert getattr(out, "nanosecond", 0) == 0
+        expected_hour = "13" if tz is UTC else "11"
+        assert fmt_ts(out) == f"2026-10-29T{expected_hour}:05:07.123Z"
+
+
+def test_pandas_timestamp_nanoseconds_rejected():
+    pd = pytest.importorskip("pandas")
+    ts = pd.Timestamp("2026-10-29T13:05:07.123000500Z")
+    with pytest.raises(ValueError):
+        fmt_ts(ts)
+    assert fmt_ts(to_canonical_time(ts)) == "2026-10-29T13:05:07.123Z"

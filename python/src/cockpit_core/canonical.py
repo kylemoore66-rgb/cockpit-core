@@ -37,7 +37,7 @@ def _to_decimal(value: object, what: str) -> Decimal:
         raise ValueError(f"{what} must be a number, not bool")
     try:
         if isinstance(value, float):
-            d = Decimal(repr(value))
+            d = Decimal(repr(float(value)))  # float(): numpy/pandas float64 subclasses repr as "np.float64(..)"
         elif isinstance(value, Decimal):
             d = value
         elif isinstance(value, str):
@@ -91,8 +91,12 @@ def _require_aware_utc(dt: datetime) -> None:
 def fmt_ts(dt: datetime) -> str:
     """UTC timestamp as ``YYYY-MM-DDTHH:MM:SS.mmmZ``. Rejects naive, non-UTC and sub-millisecond values."""
     _require_aware_utc(dt)
-    if dt.microsecond % 1000 != 0:
-        raise ValueError(f"timestamp has sub-millisecond precision ({dt.microsecond} us); use to_canonical_time first")
+    # pandas.Timestamp keeps nanoseconds outside .microsecond; they must not be dropped silently
+    nanosecond = getattr(dt, "nanosecond", 0)
+    if dt.microsecond % 1000 != 0 or nanosecond != 0:
+        raise ValueError(
+            f"timestamp has sub-millisecond precision ({dt.microsecond} us, {nanosecond} ns); use to_canonical_time first"
+        )
     return (
         f"{dt.year:04d}-{dt.month:02d}-{dt.day:02d}T"
         f"{dt.hour:02d}:{dt.minute:02d}:{dt.second:02d}.{dt.microsecond // 1000:03d}Z"
@@ -106,7 +110,10 @@ def to_canonical_time(dt: datetime) -> datetime:
     if dt.utcoffset() is None:
         raise ValueError("timestamp must be timezone-aware (naive datetime rejected)")
     utc = dt.astimezone(UTC)
-    return utc.replace(microsecond=utc.microsecond // 1000 * 1000)
+    # rebuild as a plain datetime: drops any subclass-only nanosecond field along with sub-ms digits
+    return datetime(
+        utc.year, utc.month, utc.day, utc.hour, utc.minute, utc.second, utc.microsecond // 1000 * 1000, tzinfo=UTC
+    )
 
 
 def _nfc(value: object, what: str) -> str:
