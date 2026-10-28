@@ -35,7 +35,7 @@ The Python package (imported as `cockpit_core`, Python 3.13+) is the full librar
 | Bundle verifier (`verify_bundle`, `cockpit-verify`) | `verify` | Python only |
 | `new_salt`, `to_canonical_time` | `proof`, `canonical` | Python only |
 
-A prediction's paper price and paper book are optional, and they come as a pair. When absent they are left out of the canonical bytes entirely (the keys are not there); they are never serialised as `null`, and `null` is rejected. A record with a paper price hashes exactly as it did in v0.1.0, and every v0.1.0 record, row hash and Merkle root still verifies.
+A prediction's paper price and paper book are optional, and they come as a pair. When absent they are left out of the canonical bytes entirely (the keys are not there). In TypeScript pass `undefined` (or omit the keys); `null` is a `TypeError`. In Python pass `None` for both, which means absent. Neither language ever writes `null` into the canonical bytes, and a half pair (one without the other) is an error in both. A record with a paper price hashes exactly as it did in v0.1.0, and every v0.1.0 record, row hash and Merkle root still verifies.
 
 ## Money and domain limits
 
@@ -55,8 +55,10 @@ Python:
 
 - `TypeError` is deliberate in only a few places: `size_stake(settings=...)` given something that is not a `StakeSettings`, `profit`/`unit_profit` given a settlement that is not a `Settlement`, and `stats.holm` given a bare string for `family` (it must be a collection of candidate names). Everywhere else in the money, canonical and proof functions, a wrong type is a `ValueError`. One incidental case: `matchup_settlement` given ranks that are not a sequence at all (for example `None`) raises whatever `len()` raises, a `TypeError`, rather than a checked `ValueError`.
 - `ValueError` for every other wrong type the money, canonical and proof functions check: non-`Decimal` money values (including `StakeSettings` fields), non-numbers in the float helpers (`implied`, `edge`, `full_kelly`, `unit_profit`'s price), non-integers in `decimal_from_american`, `Settlement` fields, `dead_heat` counts, `matchup_settlement`'s rule, pick and each rank, `tie_rule_from_text`, every `CanonicalPrediction` field and `fmt_*` argument, and every `proof` argument.
+- `canonical_bytes` raises `ValueError` for a half pair: a `paper_price` without a `paper_book`, or a `paper_book` without a `paper_price`. `None` for both means absent.
 - `gate`: invalid criteria raise `jsonschema.ValidationError`; a non-NFC string anywhere in the criteria raises `ValueError`. Since v0.2.0 this includes every v0.1.0 criteria document: `clv_reference.consensus_rule` is required (`consensus-v1`) and `paper_price_rule` must be `hub_asof_best_at_batch_insert`.
-- `consensus_close` raises `ValueError`, before doing any work, for: an unknown `rule` or de-vig method; Shin with `n_winners != 1`; an `n_winners` that is not an `int` of at least 1 (a `bool` is rejected); fewer than 2 distinct non-empty `reference_books`, or a reference book that is not a non-empty string; `closes` that is not a mapping, or a reference book's closes that are not a mapping; a selection key that is not a string; and odds that are not decimal odds greater than 1. Only the reference books' closes are read or checked.
+- `consensus_close` raises `ValueError`, before doing any work, for: an unknown `rule` or de-vig method; Shin with `n_winners != 1`; an `n_winners` that is not an `int` of at least 1 (a `bool` is rejected); `reference_books` given as a bare string or as anything that is not a sequence; fewer than 2 distinct non-empty `reference_books`, or a reference book that is not a non-empty string; `closes` that is not a mapping, or a reference book's closes that are not a mapping; a selection key that is not a string; and odds that are not finite decimal odds greater than 1 (an infinite price is rejected). Only the reference books' closes are read or checked.
+- In the `devig` module, `ValueError` is also raised for `devig_partial` with Shin and a `total` above 1 (Shin is single-winner, so it refuses rather than switching method), and for `estimator_probs` given an `n_winners` that is not a finite number greater than 0 (a `bool`, a non-number, NaN or infinity, zero or a negative), or Shin with `n_winners != 1`.
 - Python never raises `decimal.InvalidOperation` (or any other `decimal` signal) from a public function, whatever the caller's decimal context.
 
 TypeScript:
@@ -69,7 +71,7 @@ TypeScript:
 
 These are deliberate, and pinned by tests:
 
-- `implied(Infinity)` throws a `RangeError` in TypeScript; Python's `implied(float("inf"))` returns `0.0` (kept for the golf code it was ported from). Both reject an infinite price everywhere else.
+- `implied(Infinity)` throws a `RangeError` in TypeScript; Python's `implied(float("inf"))` returns `0.0` (kept for the golf code it was ported from). TypeScript rejects an infinite price everywhere. Python rejects it in `edge`, `full_kelly`, `unit_profit`, every `Decimal` money function, `fmt_price` and `consensus_close`. Python's `devig`, `estimator_probs`, `devig_partial` and `clv` do not check for it yet (a known gap, not a deliberate difference): the de-vig functions treat an infinite price as implied probability 0 and `clv` returns infinity, so pass them finite odds only.
 - Always serialise a decimal.js value with `toFixed` (`toFixed(2)` for money), never `toString`: decimal.js switches to exponent notation for large and small values, and canonical strings never contain exponents.
 - TypeScript American odds are limited to safe integers (`decimalFromAmerican`'s input and `americanFromDecimal`'s result); Python takes and returns any `int`.
 - TypeScript money functions also accept plain decimal strings matching `^[0-9]+(\.[0-9]+)?$` (no sign, exponent, whitespace or underscores); Python money functions require `Decimal`.
