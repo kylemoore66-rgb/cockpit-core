@@ -10,7 +10,10 @@ One byte of drift breaks every proof, so the rules are strict:
   Anything finer is rejected (a JavaScript ``Date`` could not reproduce it).
   Publishers call :func:`to_canonical_time` first, which truncates.
 * Every string is Unicode NFC, and ``features_summary`` is a str-to-str mapping.
-* The 10 fields are serialised with RFC 8785 (JSON Canonicalization Scheme): compact
+* ``paper_price`` and ``paper_book`` are optional, but only as a pair: both given, or both
+  ``None``. ``None`` means absent: the keys are omitted from the bytes, never written as
+  ``null``. A record with the pair hashes exactly as it did in v0.1.0.
+* The 8 or 10 fields are serialised with RFC 8785 (JSON Canonicalization Scheme): compact
   JSON in raw UTF-8 with object keys sorted by their UTF-16 code units (not by code
   points or UTF-8 bytes, which order some non-ASCII keys differently).
 """
@@ -149,14 +152,20 @@ class CanonicalPrediction:
     market: str
     selection: str
     fair_prob: float | Decimal
-    paper_price: Decimal | str
-    paper_book: str
+    paper_price: float | Decimal | str | None  # None (with paper_book None) means absent
+    paper_book: str | None
     predicted_at: datetime
     features_summary: Mapping[str, str]
 
 
 def canonical_bytes(p: CanonicalPrediction) -> bytes:
-    """RFC 8785 bytes of the 10 canonical fields. Raises ValueError on anything non-canonical."""
+    """RFC 8785 bytes of the canonical fields: 10 with the paper price and book, 8 without.
+
+    Raises ValueError on anything non-canonical, including only one of the paper pair.
+    """
+    has_price, has_book = p.paper_price is not None, p.paper_book is not None
+    if has_price != has_book:
+        raise ValueError("paper_price and paper_book must be given together")
     if not isinstance(p.features_summary, Mapping):
         raise ValueError("features_summary must be a mapping of str to str")
     features = {
@@ -169,9 +178,10 @@ def canonical_bytes(p: CanonicalPrediction) -> bytes:
         "market": _nfc(p.market, "market"),
         "selection": _nfc(p.selection, "selection"),
         "fair_prob": fmt_prob(p.fair_prob),
-        "paper_price": fmt_price(p.paper_price),
-        "paper_book": _nfc(p.paper_book, "paper_book"),
         "predicted_at": fmt_ts(p.predicted_at),
         "features_summary": features,
     }
+    if has_price:  # absent, never null: without the pair the keys are simply not there
+        obj["paper_price"] = fmt_price(p.paper_price)
+        obj["paper_book"] = _nfc(p.paper_book, "paper_book")
     return rfc8785.dumps(obj)

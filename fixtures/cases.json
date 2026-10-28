@@ -70,6 +70,12 @@
       "canonical": "{\"event\":\"2026-mexico-open\",\"fair_prob\":\"0.183400\",\"features_summary\":{\"course_fit\":\"+\",\"form_trend\":\"strong\"},\"market\":\"2026-mexico-open:top_10\",\"model_version\":\"golf-baseline@1\",\"paper_book\":\"draftkings\",\"paper_price\":\"6.5000\",\"predicted_at\":\"2026-10-29T13:05:07.123Z\",\"selection\":\"2026-mexico-open:top_10:player-123\",\"sport\":\"golf\"}",
       "salt_hex": "000102030405060708090a0b0c0d0e0f",
       "row_hash": "f5ab48cd357e6a6c049ebc97748c6e7af855c05ade898a5469a7d65150d17d2c"
+    },
+    "no_paper_price": {
+      "prediction": {"model_version": "golf-baseline@1", "sport": "golf", "event": "2026-mexico-open", "market": "2026-mexico-open:top_10", "selection": "2026-mexico-open:top_10:player-123", "fair_prob": 0.1834, "predicted_at": "2026-10-29T13:05:00Z", "features_summary": {"form_trend": "strong", "course_fit": "+"}},
+      "canonical": "{\"event\":\"2026-mexico-open\",\"fair_prob\":\"0.183400\",\"features_summary\":{\"course_fit\":\"+\",\"form_trend\":\"strong\"},\"market\":\"2026-mexico-open:top_10\",\"model_version\":\"golf-baseline@1\",\"predicted_at\":\"2026-10-29T13:05:00.000Z\",\"selection\":\"2026-mexico-open:top_10:player-123\",\"sport\":\"golf\"}",
+      "salt_hex": "000102030405060708090a0b0c0d0e0f",
+      "row_hash": "0d4c4df74722297d0e8a95ad1bce1c12d2548bc81033e7ba38a299621943eb14"
     }
   },
   "merkle": {

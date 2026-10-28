@@ -5,6 +5,7 @@ A bundle is a directory holding one model version's revealed predictions:
 
 * ``manifest.json``: ``{"model_version": str, "n_batches": int}``
 * ``rows.jsonl``: ``{"batch_seq": int, "index": int, "canonical": str, "salt": hex, "row_hash": hex}``
+  (``canonical`` holds 10 fields, or 8 when the paper price and book are both absent)
 * ``batches.jsonl``: ``{"batch_seq": int, "n_rows": int, "merkle_root": hex, "chained_root": hex}``
 
 The verifier recomputes every row hash, every batch Merkle root (from all of the batch's rows,
@@ -63,6 +64,8 @@ CANONICAL_KEYS = frozenset(
         "features_summary",
     }
 )
+_PAPER_KEYS = frozenset({"paper_price", "paper_book"})
+_CANONICAL_KEYS_NO_PAPER = CANONICAL_KEYS - _PAPER_KEYS
 _STRING_KEYS = ("model_version", "sport", "event", "market", "selection", "paper_book")
 _ROW_KEYS = frozenset({"batch_seq", "index", "canonical", "salt", "row_hash"})
 _BATCH_KEYS = frozenset({"batch_seq", "n_rows", "merkle_root", "chained_root"})
@@ -282,13 +285,17 @@ def _formatted(fmt: object, value: str) -> bool:
 
 
 def _check_shape(obj: object, model_version: str | None) -> list[str]:
-    """Cheap shape check: exactly the 10 canonical keys, canonical number and time strings, NFC text."""
+    """Cheap shape check: canonical number and time strings, NFC text, and exactly the 10 canonical keys
+    or exactly the 8 without ``paper_price`` and ``paper_book`` (the pair is absent, never null)."""
     if not isinstance(obj, dict):
         return ["canonical must be a JSON object"]
     problems = []
     keys = set(obj)
-    if keys != CANONICAL_KEYS:
-        missing, extra = sorted(CANONICAL_KEYS - keys), sorted(keys - CANONICAL_KEYS)
+    if len(keys & _PAPER_KEYS) == 1:
+        problems.append("paper_price and paper_book must both be present or both absent")
+    others = keys - _PAPER_KEYS  # the paper pair is judged above; every other key is required
+    if others != _CANONICAL_KEYS_NO_PAPER:
+        missing, extra = sorted(_CANONICAL_KEYS_NO_PAPER - others), sorted(others - _CANONICAL_KEYS_NO_PAPER)
         problems.append(f"canonical has wrong keys (missing {missing}, unexpected {[ascii(k) for k in extra]})")
     for key in _STRING_KEYS:
         if key in obj and (p := _nfc_problem(obj[key])):

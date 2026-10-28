@@ -25,8 +25,8 @@ def _build(pred: dict) -> CanonicalPrediction:
         market=pred["market"],
         selection=pred["selection"],
         fair_prob=pred["fair_prob"],
-        paper_price=pred["paper_price"],
-        paper_book=pred["paper_book"],
+        paper_price=pred.get("paper_price"),
+        paper_book=pred.get("paper_book"),
         predicted_at=datetime.fromisoformat(pred["predicted_at"].replace("Z", "+00:00")),  # noqa: FURB162 (mirrors the brief)
         features_summary=pred["features_summary"],
     )
@@ -55,6 +55,20 @@ def test_canonical_unicode_fixture(cases):
     # non-ASCII is emitted as raw UTF-8, never as \u escapes
     assert b"\\u" not in out
     assert "Åberg".encode() in out
+
+
+def test_canonical_no_paper_price_fixture(cases):
+    fx = cases["canonical"]["no_paper_price"]
+    out = canonical_bytes(_build(fx["prediction"]))
+    assert out.decode("utf-8") == fx["canonical"]
+    assert b"paper" not in out
+
+
+def test_paper_fields_come_together(cases):
+    with pytest.raises(ValueError, match="together"):
+        canonical_bytes(_with(cases, paper_price=None))
+    with pytest.raises(ValueError, match="together"):
+        canonical_bytes(_with(cases, paper_book=None))
 
 
 def test_naive_or_non_utc_timestamp_rejected():

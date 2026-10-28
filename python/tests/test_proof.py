@@ -24,8 +24,8 @@ def _build(pred: dict) -> CanonicalPrediction:
         market=pred["market"],
         selection=pred["selection"],
         fair_prob=pred["fair_prob"],
-        paper_price=pred["paper_price"],
-        paper_book=pred["paper_book"],
+        paper_price=pred.get("paper_price"),
+        paper_book=pred.get("paper_book"),
         predicted_at=datetime.fromisoformat(pred["predicted_at"].replace("Z", "+00:00")),  # noqa: FURB162 (mirrors the brief)
         features_summary=pred["features_summary"],
     )
@@ -56,7 +56,7 @@ def test_new_salt_is_16_random_bytes():
 # --- row hashes ----------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("name", ["basic", "unicode", "millis"])
+@pytest.mark.parametrize("name", ["basic", "unicode", "millis", "no_paper_price"])
 def test_row_hash_matches_fixture(cases, name):
     fx = cases["canonical"][name]
     canonical = canonical_bytes(_build(fx["prediction"]))

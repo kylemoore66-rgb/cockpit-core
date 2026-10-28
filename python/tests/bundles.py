@@ -10,7 +10,8 @@ from cockpit_core.canonical import CanonicalPrediction, canonical_bytes
 from cockpit_core.proof import GENESIS, chain_root, merkle_root, row_hash
 
 
-def _prediction(model_version: str, note: str) -> CanonicalPrediction:
+def _prediction(model_version: str, note: str, paper: bool = True) -> CanonicalPrediction:
+    """A synthetic prediction; ``paper=False`` omits the paper price and book (a v0.2.0 record)."""
     return CanonicalPrediction(
         model_version=model_version,
         sport="golf",
@@ -18,8 +19,8 @@ def _prediction(model_version: str, note: str) -> CanonicalPrediction:
         market="2026-mexico-open:top_10",
         selection="2026-mexico-open:top_10:player-123",
         fair_prob=0.1834,
-        paper_price="6.5",
-        paper_book="draftkings",
+        paper_price="6.5" if paper else None,
+        paper_book="draftkings" if paper else None,
         predicted_at=datetime(2026, 10, 29, 13, 5, tzinfo=UTC),
         features_summary={"note": note},
     )
@@ -51,15 +52,18 @@ def _batch_records(rows: list[dict]) -> list[dict]:
 
 
 def write_bundle(
-    tmp_path: Path, batches: list[list[str]], model_version: str = "golf-baseline@1"
+    tmp_path: Path, batches: list[list[str]], model_version: str = "golf-baseline@1", paper: bool = True
 ) -> tuple[Path, dict[int, str]]:
-    """Write a true bundle (one batch per inner list, one row per note) and return it with its anchors."""
+    """Write a true bundle (one batch per inner list, one row per note) and return it with its anchors.
+
+    ``paper=False`` writes every row without a paper price and book.
+    """
     path = tmp_path / "bundle"
     path.mkdir(parents=True)
     rows = []
     for seq, notes in enumerate(batches, start=1):
         for i, note in enumerate(notes):
-            canonical = canonical_bytes(_prediction(model_version, note))
+            canonical = canonical_bytes(_prediction(model_version, note, paper))
             salt = bytes([seq, i]) * 8
             rows.append(
                 {

@@ -318,3 +318,67 @@ def test_failed_bundle_is_never_anchored(tmp_path):
     report = verify_bundle(path, anchors)
     assert not report.ok
     assert not report.anchored
+
+
+# --- optional paper price (v0.2.0): absent, never null; both or neither --------------------
+
+
+def _replace_canonical(path: Path, obj: dict) -> None:
+    """Re-canonicalise row 0 of batch 1 as ``obj`` and recompute every hash and root (a self-consistent bundle)."""
+    rows = read_jsonl(path / "rows.jsonl")
+    canonical = rfc8785.dumps(obj)
+    salt = bytes.fromhex(rows[0]["salt"])
+    rows[0] = {**rows[0], "canonical": canonical.decode(), "row_hash": row_hash(salt, canonical).hex()}
+    write_jsonl(path / "rows.jsonl", rows)
+    rewrite_batches(path)
+
+
+def test_bundle_without_paper_price_verifies(tmp_path):
+    path, anchors = write_bundle(tmp_path, NOTES, paper=False)
+    for r in read_jsonl(path / "rows.jsonl"):
+        assert "paper" not in r["canonical"]
+    report = verify_bundle(path, anchors)
+    assert report.ok, report.errors
+    assert report.anchored
+
+
+def test_half_pair_canonical_rejected(tmp_path):
+    for dropped in ("paper_book", "paper_price"):
+        path, _ = write_bundle(tmp_path / dropped, NOTES)
+        obj = json.loads(read_jsonl(path / "rows.jsonl")[0]["canonical"])
+        del obj[dropped]
+        _replace_canonical(path, obj)
+
+        report = verify_bundle(path)
+        assert not report.ok
+        assert any(e.startswith("batch 1 row 0:") and "both be present or both absent" in e for e in report.errors), (
+            report.errors
+        )
+
+
+def test_null_paper_fields_rejected(tmp_path):
+    path, _ = write_bundle(tmp_path, NOTES)
+    obj = json.loads(read_jsonl(path / "rows.jsonl")[0]["canonical"])
+    obj["paper_price"] = None
+    obj["paper_book"] = None
+    _replace_canonical(path, obj)
+
+    report = verify_bundle(path)
+    assert not report.ok
+    row0 = [e for e in report.errors if e.startswith("batch 1 row 0:")]
+    assert any("paper_price" in e for e in row0), report.errors
+    assert any("paper_book" in e for e in row0), report.errors
+
+
+def test_half_pair_does_not_mask_other_key_errors(tmp_path):
+    path, _ = write_bundle(tmp_path, NOTES)
+    obj = json.loads(read_jsonl(path / "rows.jsonl")[0]["canonical"])
+    del obj["paper_book"]
+    del obj["sport"]
+    obj["extra"] = "x"
+    _replace_canonical(path, obj)
+
+    errors = verify_bundle(path).errors
+    row0 = [e for e in errors if e.startswith("batch 1 row 0:")]
+    assert any("both be present or both absent" in e for e in row0), errors
+    assert any("wrong keys" in e and "'sport'" in e and "extra" in e and "paper" not in e for e in row0), errors
