@@ -10,8 +10,8 @@ from cockpit_core.gate import criteria_hash, validate_criteria
 
 VALID = {
     "counted_prediction": "last_committed_before_close",
-    "paper_price_rule": "best price across tracked books at commit time",
-    "clv_reference": {"books": ["pinnacle", "circa"], "method": "shin"},
+    "paper_price_rule": "hub_asof_best_at_batch_insert",
+    "clv_reference": {"books": ["pinnacle", "circa"], "method": "shin", "consensus_rule": "consensus-v1"},
     "close_age_limit_seconds": 600,
     "min_picks": 200,
     "min_events": 20,
@@ -30,8 +30,8 @@ def test_valid_criteria_pass_and_hash_is_stable_across_key_order():
         "min_events": 20,
         "min_picks": 200,
         "close_age_limit_seconds": 600,
-        "clv_reference": {"method": "shin", "books": ["pinnacle", "circa"]},
-        "paper_price_rule": "best price across tracked books at commit time",
+        "clv_reference": {"consensus_rule": "consensus-v1", "method": "shin", "books": ["pinnacle", "circa"]},
+        "paper_price_rule": "hub_asof_best_at_batch_insert",
         "counted_prediction": "last_committed_before_close",
     }
     h = criteria_hash(_valid())
@@ -76,6 +76,7 @@ def test_missing_required_field_raises(field):
     [
         ("clv_reference", "books"),
         ("clv_reference", "method"),
+        ("clv_reference", "consensus_rule"),
         ("test", "name"),
         ("test", "alpha"),
         ("test", "ci_level"),
@@ -86,6 +87,54 @@ def test_missing_nested_field_raises(parent, key):
     del c[parent][key]
     with pytest.raises(ValidationError):
         validate_criteria(c)
+
+
+def test_consensus_rule_required():
+    """The consensus rule is pinned by version, so a later library change cannot re-grade a gate."""
+    c = _valid()
+    del c["clv_reference"]["consensus_rule"]
+    with pytest.raises(ValidationError):
+        validate_criteria(c)
+    with pytest.raises(ValidationError):
+        criteria_hash(c)
+
+
+def test_unknown_consensus_rule_rejected():
+    c = _valid()
+    c["clv_reference"]["consensus_rule"] = "consensus-v2"
+    with pytest.raises(ValidationError):
+        validate_criteria(c)
+    with pytest.raises(ValidationError):
+        criteria_hash(c)
+
+
+def test_paper_price_rule_vocabulary():
+    """paper_price_rule is a fixed vocabulary, not free text (v0.1.0 free text is rejected)."""
+    c = _valid()
+    c["paper_price_rule"] = "best price across tracked books at commit time"
+    with pytest.raises(ValidationError):
+        validate_criteria(c)
+    with pytest.raises(ValidationError):
+        criteria_hash(c)
+    c["paper_price_rule"] = "hub_asof_best_at_batch_insert"
+    validate_criteria(c)
+
+
+# The hub pins this hash; any change to the canonical bytes of this document breaks it.
+PINNED_CRITERIA = {
+    "close_age_limit_seconds": 900,
+    "clv_reference": {"books": ["circa", "pinnacle"], "consensus_rule": "consensus-v1", "method": "power"},
+    "counted_prediction": "last_committed_before_close",
+    "min_events": 20,
+    "min_picks": 200,
+    "paper_price_rule": "hub_asof_best_at_batch_insert",
+    "test": {"alpha": 0.05, "ci_level": 0.9, "name": "cluster_bootstrap_mean_clv"},
+}
+PINNED_CRITERIA_HASH = "36fd6aaef4788da68e903890968cf8627afecc2360447adb432e05debc0560b9"
+
+
+def test_pinned_criteria_hash():
+    assert criteria_hash(copy.deepcopy(PINNED_CRITERIA)) == PINNED_CRITERIA_HASH
 
 
 def test_clv_reference_needs_two_books():

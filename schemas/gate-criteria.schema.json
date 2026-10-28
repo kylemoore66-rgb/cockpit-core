@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/kylemoore66-rgb/cockpit-core/schemas/gate-criteria.schema.json",
   "title": "Cockpit gate criteria",
-  "description": "Pre-registered success criteria for a model's shadow period. The RFC 8785 SHA-256 of a valid document is committed publicly before the shadow period begins.",
+  "description": "Pre-registered success criteria for a model's shadow period. The RFC 8785 SHA-256 of a valid document is committed publicly before the shadow period begins. The CLV consensus rule is named by version (clv_reference.consensus_rule, required) and paper_price_rule is a fixed vocabulary, not free text.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -19,13 +19,13 @@
       "enum": ["last_committed_before_close"]
     },
     "paper_price_rule": {
-      "type": "string",
-      "minLength": 1
+      "description": "hub_asof_best_at_batch_insert: for each clv_reference book, the latest hub-collected price inserted at or before the batch's server insert time and observed no more than 6 hours 15 minutes before it; the best of those prices. A publisher's own paper price is display only.",
+      "enum": ["hub_asof_best_at_batch_insert"]
     },
     "clv_reference": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["books", "method"],
+      "required": ["books", "method", "consensus_rule"],
       "properties": {
         "books": {
           "type": "array",
@@ -35,6 +35,9 @@
         },
         "method": {
           "enum": ["multiplicative", "power", "shin"]
+        },
+        "consensus_rule": {
+          "enum": ["consensus-v1"]
         }
       }
     },
