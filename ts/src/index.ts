@@ -1,4 +1,4 @@
-export const VERSION = "0.1.0";
+export const VERSION = "0.2.0";
 
 export { Decimal, type DecimalInput } from "./decimal.js";
 export { americanFromDecimal, decimalFromAmerican, implied } from "./odds.js";

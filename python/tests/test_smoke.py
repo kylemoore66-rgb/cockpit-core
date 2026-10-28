@@ -30,3 +30,9 @@ def test_base_import_has_no_numpy():
         text=True,
     )
     assert result.returncode == 0, result.stderr or "numpy was imported by the base package"
+
+
+def test_version_is_0_2_0():
+    import cockpit_core
+
+    assert cockpit_core.__version__ == "0.2.0"

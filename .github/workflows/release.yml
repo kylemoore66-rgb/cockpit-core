@@ -11,7 +11,7 @@ permissions:
 jobs:
   # Same Python checks as ci.yml; the build job below waits for both interpreters.
   python:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
     strategy:
@@ -34,7 +34,7 @@ jobs:
   # Runs the TypeScript suite, then builds and packs the tarball. No lifecycle scripts run.
   build:
     needs: python
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
     defaults:
@@ -59,7 +59,7 @@ jobs:
   # Publishes only the tarball built above. Nothing is installed or executed from npm here.
   publish:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:

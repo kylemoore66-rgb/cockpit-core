@@ -9,13 +9,13 @@ Nothing is published to PyPI or npm; install from the tagged GitHub release.
 Python:
 
 ```
-cockpit-core @ git+https://github.com/kylemoore66-rgb/cockpit-core@v0.1.0#subdirectory=python
+cockpit-core @ git+https://github.com/kylemoore66-rgb/cockpit-core@v0.2.0#subdirectory=python
 ```
 
 TypeScript (release tarball):
 
 ```
-https://github.com/kylemoore66-rgb/cockpit-core/releases/download/v0.1.0/kylemoore66-rgb-cockpit-core-0.1.0.tgz
+https://github.com/kylemoore66-rgb/cockpit-core/releases/download/v0.2.0/kylemoore66-rgb-cockpit-core-0.2.0.tgz
 ```
 
 ## Scope
@@ -29,10 +29,13 @@ The Python package (imported as `cockpit_core`, Python 3.13+) is the full librar
 | Settlement and profit | `settle` | `settlement`, `profit` |
 | Canonical bytes of a prediction | `canonical` | `fmtProb`, `fmtPrice`, `fmtTs`, `canonicalBytes` |
 | Proofs: row hash, RFC 6962 Merkle root and inclusion proofs, chain and day roots | `proof` | `rowHash`, `merkleRoot`, `inclusionProof`, `verifyInclusion`, `chainRoot`, `dayRoot` |
-| De-vig, statistics, closing line value | `devig`, `stats`, `clv` | Python only |
-| Gate criteria (`validate_criteria`, `criteria_hash`) | `gate` | Python only |
+| De-vig, statistics, closing line value (`devig` also has `estimator_probs` and `devig_partial` for books that price only part of a field) | `devig`, `stats`, `clv` | Python only |
+| Consensus close (`consensus_close`) | `consensus` | Python only |
+| Gate criteria (`validate_criteria`, `criteria_hash`); `clv_reference.consensus_rule` is required and `paper_price_rule` is a fixed vocabulary, so v0.1.0 criteria documents are rejected | `gate` | Python only |
 | Bundle verifier (`verify_bundle`, `cockpit-verify`) | `verify` | Python only |
 | `new_salt`, `to_canonical_time` | `proof`, `canonical` | Python only |
+
+A prediction's paper price and paper book are optional, and they come as a pair. When absent they are left out of the canonical bytes entirely (the keys are not there); they are never serialised as `null`, and `null` is rejected. A record with a paper price hashes exactly as it did in v0.1.0, and every v0.1.0 record, row hash and Merkle root still verifies.
 
 ## Money and domain limits
 
@@ -52,12 +55,14 @@ Python:
 
 - `TypeError` is deliberate in only a few places: `size_stake(settings=...)` given something that is not a `StakeSettings`, `profit`/`unit_profit` given a settlement that is not a `Settlement`, and `stats.holm` given a bare string for `family` (it must be a collection of candidate names). Everywhere else in the money, canonical and proof functions, a wrong type is a `ValueError`. One incidental case: `matchup_settlement` given ranks that are not a sequence at all (for example `None`) raises whatever `len()` raises, a `TypeError`, rather than a checked `ValueError`.
 - `ValueError` for every other wrong type the money, canonical and proof functions check: non-`Decimal` money values (including `StakeSettings` fields), non-numbers in the float helpers (`implied`, `edge`, `full_kelly`, `unit_profit`'s price), non-integers in `decimal_from_american`, `Settlement` fields, `dead_heat` counts, `matchup_settlement`'s rule, pick and each rank, `tie_rule_from_text`, every `CanonicalPrediction` field and `fmt_*` argument, and every `proof` argument.
-- `gate`: invalid criteria raise `jsonschema.ValidationError`; a non-NFC string anywhere in the criteria raises `ValueError`.
+- `gate`: invalid criteria raise `jsonschema.ValidationError`; a non-NFC string anywhere in the criteria raises `ValueError`. Since v0.2.0 this includes every v0.1.0 criteria document: `clv_reference.consensus_rule` is required (`consensus-v1`) and `paper_price_rule` must be `hub_asof_best_at_batch_insert`.
+- `consensus_close` raises `ValueError`, before doing any work, for: an unknown `rule` or de-vig method; Shin with `n_winners != 1`; an `n_winners` that is not an `int` of at least 1 (a `bool` is rejected); fewer than 2 distinct non-empty `reference_books`, or a reference book that is not a non-empty string; `closes` that is not a mapping, or a reference book's closes that are not a mapping; a selection key that is not a string; and odds that are not decimal odds greater than 1. Only the reference books' closes are read or checked.
 - Python never raises `decimal.InvalidOperation` (or any other `decimal` signal) from a public function, whatever the caller's decimal context.
 
 TypeScript:
 
 - `TypeError` for a wrong JS type in `canonical` (`fmtProb`/`fmtPrice` given anything but a number, string or Decimal; `fmtTs` given a non-`Date`; non-string text fields; a `featuresSummary` that is not a plain object; a prediction that is not an object) and in `proof` (not a `Uint8Array`, not a number or bigint, not an array); for `sizeStake` called without an object holding all its arguments, or with `settings` that is not an object holding all four settings; for `settlement()` given a non-string; and for `profit` given a settlement that is not `{ win: [n, d], refund: [n, d] }` of bigints.
+- `paperPrice` and `paperBook` must be absent (`undefined`), never `null`: `null` is a `TypeError` ("…must be absent (undefined), never null"), and `undefined` means absent.
 - `RangeError` for a wrong JS type in a money value (`sizeStake`, `profit`, `americanFromDecimal`, the stake settings: a JS number, boolean or `null` instead of a `Decimal` or decimal string) and in the float helpers (`implied`, `edge`, `fullKelly`, `decimalFromAmerican`), as well as for every bad value.
 
 ## Documented differences between the packages
