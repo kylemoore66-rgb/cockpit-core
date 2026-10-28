@@ -8,7 +8,7 @@ from cockpit_core.odds import Method, implied
 CAP = 0.995
 _TOL = 1e-12
 
-__all__ = ["Method", "devig", "shin_from_implied"]
+__all__ = ["Method", "devig", "devig_partial", "estimator_probs", "shin_from_implied"]
 
 
 def _multiplicative(pi: list[float], total: float) -> list[float]:
@@ -102,3 +102,45 @@ def devig(odds: Sequence[float], method: Method, expected_total: float = 1.0) ->
             raise ValueError("Shin supports expected_total == 1 only")
         return _shin(pi)
     raise ValueError(f"unknown method {method!r}")
+
+
+def estimator_probs(odds: Sequence[float], method: Method, n_winners: float) -> list[float]:
+    """A book's probabilities over its own priced runners under `method`: the uncapped shape, then min(1, p).
+
+    The estimator for a partial book's missing runners (GolfProject Rulings 77, 89a): a missing runner's
+    mass is estimated from other books' estimator_probs. Not devig(), whose CAP redistributes mass and which
+    refuses n_winners >= the priced count. Multiplicative is min(1, implied * n_winners / sum); power solves
+    sum(implied ** k) = n_winners; Shin (single-winner only) falls back to multiplicative when the booksum
+    is <= 1, as devig's Shin does. Raises ValueError when the shape has no solution.
+    """
+    if len(odds) == 0:
+        raise ValueError("odds must not be empty")
+    if method == Method.SHIN and n_winners != 1:
+        raise ValueError("Shin applies to single-winner markets only")
+    pi = [implied(o) for o in odds]
+    if method == Method.POWER:
+        return [min(1.0, p) for p in _power(pi, n_winners)]
+    if method == Method.SHIN and sum(pi) > 1.0:  # _shin's own test for its multiplicative fallback
+        return [min(1.0, p) for p in _shin(pi)]
+    if method not in (Method.MULTIPLICATIVE, Method.SHIN):
+        raise ValueError(f"unknown method {method!r}")
+    s = math.fsum(pi)
+    return [min(1.0, p * n_winners / s) for p in pi]
+
+
+def devig_partial(odds: Sequence[float], method: Method, total: float) -> list[float]:
+    """Fair probabilities for a partial book's priced runners, summing to total, in input order.
+
+    total is n_winners minus the missing runners' estimated mass, so a book that skips runners does not
+    push every runner it prices up (GolfProject Ruling 71). Shin solves to 1 only, so with total != 1 it
+    runs on implied / total (the priced runners' true margin, not odds * total, which can push a short
+    favourite to <= 1.0) and scales back by total (Rulings 76, 83); a rescaled implied >= 1 raises. Every
+    other case is devig(odds, method, total). Requires 0 < total < len(odds).
+    """
+    if len(odds) == 0:
+        raise ValueError("odds must not be empty")
+    if not 0 < total < len(odds):
+        raise ValueError(f"total must be in (0, {len(odds)}), got {total}")
+    if method == Method.SHIN and total != 1:
+        return [p * total for p in shin_from_implied([implied(o) / total for o in odds])]
+    return devig(odds, method, total)

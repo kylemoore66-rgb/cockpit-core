@@ -1,7 +1,9 @@
+import math
+
 import pytest
 from pytest import approx
 
-from cockpit_core.devig import devig, shin_from_implied
+from cockpit_core.devig import devig, devig_partial, estimator_probs, shin_from_implied
 from cockpit_core.odds import Method, implied
 
 MULTIPLICATIVE, POWER, SHIN = Method.MULTIPLICATIVE, Method.POWER, Method.SHIN
@@ -136,3 +138,30 @@ def test_multiplicative_cap_cascades_to_a_second_pass():
 
 def test_order_preserved():
     assert devig([5.0, 2.0, 3.0], MULTIPLICATIVE) == approx([0.19355, 0.48387, 0.32258], abs=1e-5)
+
+
+# Partial-book de-vig, ported from GolfProject (Rulings 71, 76, 77, 83, 89a). Synthetic odds; the pinned
+# numbers were computed from golf's own code.
+A = [3.0, 4.0, 5.0, 8.0, 10.0, 12.0, 15.0, 20.0, 25.0, 30.0]
+C = [2.9, 4.2, 5.0, 8.5, 9.5, 12.0, 16.0, 19.0, 23.0]
+
+
+def test_estimator_probs_match_golf():
+    assert estimator_probs(A, Method.MULTIPLICATIVE, 1)[9] == approx(0.02600780234070221, abs=1e-12)
+    assert estimator_probs(A, Method.POWER, 3)[0] == approx(0.5441926214220171, abs=1e-12)
+    assert estimator_probs(A, Method.SHIN, 1)[9] == approx(0.01730676345176251, abs=1e-12)
+
+
+def test_devig_partial_match_golf():
+    assert devig_partial(C, Method.MULTIPLICATIVE, 0.9)[0] == approx(0.24871833912339567, abs=1e-12)
+    shin = devig_partial(C, Method.SHIN, 0.9)
+    assert shin[0] == approx(0.2771562745425425, abs=1e-12) and math.fsum(shin) == approx(0.9, abs=1e-12)
+    assert devig_partial(C, Method.POWER, 2.85)[0] == approx(0.554599772331006, abs=1e-12)
+    assert devig_partial(C, Method.SHIN, 1.0) == devig(C, Method.SHIN)
+
+
+def test_partial_bounds_and_shin_limits():
+    for bad in (0.0, -0.1, 9.0):
+        pytest.raises(ValueError, devig_partial, C, Method.POWER, bad)
+    with pytest.raises(ValueError, match="single-winner"):
+        estimator_probs(A, Method.SHIN, 3)
