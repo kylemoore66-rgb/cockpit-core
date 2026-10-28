@@ -19,8 +19,8 @@ type FixturePrediction = {
   market: string;
   selection: string;
   fair_prob: number;
-  paper_price: string;
-  paper_book: string;
+  paper_price?: string; // absent in the no_paper_price case
+  paper_book?: string;
   predicted_at: string;
   features_summary: Record<string, string>;
 };
@@ -33,7 +33,7 @@ function build(pred: FixturePrediction): CanonicalPrediction {
     market: pred.market,
     selection: pred.selection,
     fairProb: pred.fair_prob,
-    paperPrice: pred.paper_price,
+    paperPrice: pred.paper_price, // an absent fixture key maps to undefined
     paperBook: pred.paper_book,
     predictedAt: new Date(pred.predicted_at),
     featuresSummary: pred.features_summary,
@@ -48,7 +48,7 @@ const decode = (b: Uint8Array): string => new TextDecoder("utf-8", { fatal: true
 const NFD_ABERG = "Åberg";
 
 describe("canonical fixtures", () => {
-  test.each(["basic", "unicode", "millis"])("%s: bytes and row hash match", (name) => {
+  test.each(["basic", "unicode", "millis", "no_paper_price"])("%s: bytes and row hash match", (name) => {
     const fx = cases.canonical[name];
     const out = canonicalBytes(build(fx.prediction));
     expect(out).toBeInstanceOf(Uint8Array);
@@ -56,8 +56,8 @@ describe("canonical fixtures", () => {
     expect(toHex(rowHash(fromHex(fx.salt_hex), out))).toBe(fx.row_hash);
   });
 
-  test("fixture section has exactly the three cases", () => {
-    expect(Object.keys(cases.canonical).sort()).toEqual(["basic", "millis", "unicode"]);
+  test("fixture section has exactly the four cases", () => {
+    expect(Object.keys(cases.canonical).sort()).toEqual(["basic", "millis", "no_paper_price", "unicode"]);
   });
 
   test("unicode is raw UTF-8, never \\u escapes", () => {
@@ -80,6 +80,42 @@ describe("canonical fixtures", () => {
       "selection",
       "sport",
     ]);
+  });
+});
+
+describe("optional paper price and book", () => {
+  test("absent pair gives the 8-key bytes", () => {
+    expect(decode(canonicalBytes(basic({ paperPrice: undefined, paperBook: undefined })))).toBe(
+      cases.canonical.no_paper_price.canonical,
+    );
+  });
+
+  test("missing keys are absent, the same as undefined", () => {
+    const { paperPrice: _price, paperBook: _book, ...rest } = basic();
+    expect(decode(canonicalBytes(rest as CanonicalPrediction))).toBe(cases.canonical.no_paper_price.canonical);
+  });
+
+  test("null is a TypeError", () => {
+    expect(() => canonicalBytes(basic({ paperPrice: null, paperBook: null }))).toThrow(TypeError);
+    expect(() => canonicalBytes(basic({ paperPrice: null }))).toThrow(TypeError);
+    expect(() => canonicalBytes(basic({ paperBook: null }))).toThrow(TypeError);
+    // null is checked before the half-pair rule, so a null beside an absent partner is still a TypeError
+    expect(() => canonicalBytes(basic({ paperPrice: null, paperBook: undefined }))).toThrow(TypeError);
+    expect(() => canonicalBytes(basic({ paperPrice: undefined, paperBook: null }))).toThrow(TypeError);
+  });
+
+  test("half a pair is a RangeError", () => {
+    const msg = "paperPrice and paperBook must be given together";
+    expect(() => canonicalBytes(basic({ paperBook: undefined }))).toThrow(RangeError);
+    expect(() => canonicalBytes(basic({ paperPrice: undefined }))).toThrow(RangeError);
+    expect(() => canonicalBytes(basic({ paperBook: undefined }))).toThrow(msg);
+    expect(() => canonicalBytes(basic({ paperPrice: undefined }))).toThrow(msg);
+  });
+
+  test("a present pair is still validated", () => {
+    expect(() => canonicalBytes(basic({ paperPrice: "1.0" }))).toThrow(RangeError);
+    expect(() => canonicalBytes(basic({ paperBook: 7 }))).toThrow(TypeError);
+    expect(() => canonicalBytes(basic({ paperBook: NFD_ABERG }))).toThrow(RangeError);
   });
 });
 
@@ -130,7 +166,8 @@ describe("formatting", () => {
       expect(() => fmtProb(bad as unknown as number)).toThrow(TypeError);
       expect(() => fmtPrice(bad as unknown as number)).toThrow(TypeError);
       expect(() => canonicalBytes(basic({ fairProb: bad }))).toThrow(TypeError);
-      expect(() => canonicalBytes(basic({ paperPrice: bad }))).toThrow(TypeError);
+      // undefined is an absent paper price (a half pair, covered above), not a wrong-type value
+      if (bad !== undefined) expect(() => canonicalBytes(basic({ paperPrice: bad }))).toThrow(TypeError);
     },
   );
 

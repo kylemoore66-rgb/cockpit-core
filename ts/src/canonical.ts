@@ -10,7 +10,10 @@
  *   zeros). Like Python's 60-digit `quantize`, a value with more than 60 significant digits is rejected.
  * - Timestamps are `Date.prototype.toISOString()`: UTC, `YYYY-MM-DDTHH:MM:SS.mmmZ`, years 1 to 9999.
  * - Every string must be well-formed (no lone surrogates) and Unicode NFC.
- * - The 10 fields are serialised with RFC 8785 under the Python (snake_case) field names.
+ * - The 8 or 10 fields are serialised with RFC 8785 under the Python (snake_case) field names.
+ * - `paperPrice` and `paperBook` are optional, but only as a pair: both given (10 fields, hashing exactly
+ *   as in v0.1.0) or both absent (8 fields; the keys are left out, never written as null). `undefined` or
+ *   a missing key is absent; `null` is a TypeError; exactly one of the pair is a RangeError.
  *
  * Errors: a value of the right JS type that is not acceptable is a RangeError; a value of the wrong JS
  * type (or a featuresSummary that is not a plain object) is a TypeError.
@@ -28,8 +31,8 @@ export type CanonicalPrediction = {
   market: string;
   selection: string;
   fairProb: number | DecimalInput;
-  paperPrice: number | DecimalInput;
-  paperBook: string;
+  paperPrice?: number | DecimalInput; // optional, but only together with paperBook
+  paperBook?: string;
   predictedAt: Date;
   featuresSummary: Readonly<Record<string, string>>;
 };
@@ -127,9 +130,18 @@ function features(value: unknown): Record<string, string> {
   );
 }
 
-/** RFC 8785 UTF-8 bytes of the 10 canonical fields. Throws on anything non-canonical. */
+/**
+ * RFC 8785 UTF-8 bytes of the canonical fields: 10 with the paper price and book, 8 without.
+ * Throws on anything non-canonical, including only one of the paper pair.
+ */
 export function canonicalBytes(p: CanonicalPrediction): Uint8Array {
   if (typeof p !== "object" || p === null) throw new TypeError(`prediction must be an object, got ${show(p)}`);
+  // Absent, never null: null is a wrong-type value, checked before the pair rule so it is never "absent".
+  if (p.paperPrice === null) throw new TypeError("paperPrice must be absent (undefined), never null");
+  if (p.paperBook === null) throw new TypeError("paperBook must be absent (undefined), never null");
+  const hasPrice = p.paperPrice !== undefined;
+  const hasBook = p.paperBook !== undefined;
+  if (hasPrice !== hasBook) throw new RangeError("paperPrice and paperBook must be given together");
   const obj = Object.fromEntries([
     ["model_version", text(p.modelVersion, "modelVersion")],
     ["sport", text(p.sport, "sport")],
@@ -137,8 +149,13 @@ export function canonicalBytes(p: CanonicalPrediction): Uint8Array {
     ["market", text(p.market, "market")],
     ["selection", text(p.selection, "selection")],
     ["fair_prob", fmtProb(p.fairProb)],
-    ["paper_price", fmtPrice(p.paperPrice)],
-    ["paper_book", text(p.paperBook, "paperBook")],
+    // Without the pair the keys are simply not there. Inline, so fields validate in the v0.1.0 order.
+    ...(hasPrice
+      ? [
+          ["paper_price", fmtPrice(p.paperPrice as number | DecimalInput)],
+          ["paper_book", text(p.paperBook, "paperBook")],
+        ]
+      : []),
     ["predicted_at", fmtTs(p.predictedAt)],
     ["features_summary", features(p.featuresSummary)],
   ]);
