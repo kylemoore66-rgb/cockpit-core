@@ -2,9 +2,25 @@
 
 The shared betting math and track-record proof code behind Cockpit, in Python (`python/`) and TypeScript (`ts/`). It is public so anyone can audit how Cockpit computes its edges, stakes and track record: the odds conversion, de-vigging, Kelly staking, settlement, and the hash-committed prediction log that proves a record was not edited after the fact. Both packages are tested against one shared file of hand-worked reference values (`fixtures/cases.json`), so the two implementations cannot silently disagree. To run the tests: `cd python && uv sync && uv run pytest` and `cd ts && npm ci && npm test`.
 
+## Install
+
+Nothing is published to PyPI or npm; install from the tagged GitHub release.
+
+Python:
+
+```
+cockpit-core @ git+https://github.com/kylemoore66-rgb/cockpit-core@v0.1.0#subdirectory=python
+```
+
+TypeScript (release tarball):
+
+```
+https://github.com/kylemoore66-rgb/cockpit-core/releases/download/v0.1.0/kylemoore66-rgb-cockpit-core-0.1.0.tgz
+```
+
 ## Scope
 
-The Python package (`cockpit-core` on PyPI, imported as `cockpit_core`, Python 3.13+) is the full library. The TypeScript package (`@kylemoore66-rgb/cockpit-core`, Node 20+) carries only what a browser needs to recompute and check published numbers: odds, Kelly, settlement, canonical bytes and proofs.
+The Python package (imported as `cockpit_core`, Python 3.13+) is the full library. The TypeScript package (`@kylemoore66-rgb/cockpit-core`, Node 20+) carries only what a browser needs to recompute and check published numbers: odds, Kelly, settlement, canonical bytes and proofs.
 
 | Area | Python module | TypeScript |
 |---|---|---|
@@ -34,7 +50,7 @@ Bad input raises; it never returns a number. A bad **value** is `ValueError` in 
 
 Python:
 
-- `TypeError` in two places only: `size_stake(settings=...)` given something that is not a `StakeSettings`, and `profit`/`unit_profit` given a settlement that is not a `Settlement`.
+- `TypeError` is deliberate in only a few places: `size_stake(settings=...)` given something that is not a `StakeSettings`, `profit`/`unit_profit` given a settlement that is not a `Settlement`, and `stats.holm` given a bare string for `family` (it must be a collection of candidate names). Everywhere else in the money, canonical and proof functions, a wrong type is a `ValueError`. One incidental case: `matchup_settlement` given ranks that are not a sequence at all (for example `None`) raises whatever `len()` raises, a `TypeError`, rather than a checked `ValueError`.
 - `ValueError` for every other wrong type the money, canonical and proof functions check: non-`Decimal` money values (including `StakeSettings` fields), non-numbers in the float helpers (`implied`, `edge`, `full_kelly`, `unit_profit`'s price), non-integers in `decimal_from_american`, `Settlement` fields, `dead_heat` counts, `matchup_settlement`'s rule, pick and each rank, `tie_rule_from_text`, every `CanonicalPrediction` field and `fmt_*` argument, and every `proof` argument.
 - `gate`: invalid criteria raise `jsonschema.ValidationError`; a non-NFC string anywhere in the criteria raises `ValueError`.
 - Python never raises `decimal.InvalidOperation` (or any other `decimal` signal) from a public function, whatever the caller's decimal context.
