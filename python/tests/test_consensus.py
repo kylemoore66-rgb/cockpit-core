@@ -161,6 +161,20 @@ def test_bad_closes_rejected(cases):
         consensus_close(books(cases) | {"alpha": None}, reference_books=ref, method="power", n_winners=1)
 
 
+@pytest.mark.parametrize("bad", [float("inf"), float("nan")])
+def test_non_finite_reference_odds_rejected(cases, bad):
+    # implied(inf) is 0.0, so an infinite quote would otherwise count toward coverage with probability 0.
+    ref = cases["consensus"]["reference_books"]
+    closes = books(cases)
+    closes["alpha"] = closes["alpha"] | {"s01": bad}
+    with pytest.raises(ValueError, match="decimal odds"):
+        consensus_close(closes, reference_books=ref, method="multiplicative", n_winners=1)
+    unread = books(cases) | {"echo": {"s01": bad}}  # a non-reference book is never read
+    assert consensus_close(unread, reference_books=ref, method="multiplicative", n_winners=1) == run(
+        cases, "multiplicative", 1
+    )
+
+
 def test_non_reference_books_ignored(cases):
     closes = books(cases) | {"echo": {"s01": 1.01, "s99": 2.0, 7: "not read"}}
     assert run(cases, "power", 1, closes) == run(cases, "power", 1)

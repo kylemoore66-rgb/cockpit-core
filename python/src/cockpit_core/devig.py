@@ -110,11 +110,19 @@ def estimator_probs(odds: Sequence[float], method: Method, n_winners: float) -> 
     The estimator for a partial book's missing runners (GolfProject Rulings 77, 89a): a missing runner's
     mass is estimated from other books' estimator_probs. Not devig(), whose CAP redistributes mass and which
     refuses n_winners >= the priced count. Multiplicative is min(1, implied * n_winners / sum); power solves
-    sum(implied ** k) = n_winners; Shin (single-winner only) falls back to multiplicative when the booksum
-    is <= 1, as devig's Shin does. Raises ValueError when the shape has no solution.
+    sum(implied ** k) = n_winners; Shin (single-winner only) uses the uncapped multiplicative shape above when
+    the booksum is <= 1 (devig's Shin falls back to the capped multiplicative instead). Raises ValueError for an
+    n_winners that is not a finite number > 0 (a bool is rejected), and when the shape has no solution.
     """
     if len(odds) == 0:
         raise ValueError("odds must not be empty")
+    if (
+        isinstance(n_winners, bool)
+        or not isinstance(n_winners, (int, float))
+        or not math.isfinite(n_winners)
+        or not n_winners > 0
+    ):
+        raise ValueError(f"n_winners must be a finite number > 0, got {n_winners!r}")
     if method == Method.SHIN and n_winners != 1:
         raise ValueError("Shin applies to single-winner markets only")
     pi = [implied(o) for o in odds]
@@ -134,13 +142,16 @@ def devig_partial(odds: Sequence[float], method: Method, total: float) -> list[f
     total is n_winners minus the missing runners' estimated mass, so a book that skips runners does not
     push every runner it prices up (GolfProject Ruling 71). Shin solves to 1 only, so with total != 1 it
     runs on implied / total (the priced runners' true margin, not odds * total, which can push a short
-    favourite to <= 1.0) and scales back by total (Rulings 76, 83); a rescaled implied >= 1 raises. Every
-    other case is devig(odds, method, total). Requires 0 < total < len(odds).
+    favourite to <= 1.0) and scales back by total (Rulings 76, 83); a rescaled implied >= 1 raises. Shin is
+    single-winner, so a total above 1 raises rather than switching method. Every other case is
+    devig(odds, method, total). Requires 0 < total < len(odds).
     """
     if len(odds) == 0:
         raise ValueError("odds must not be empty")
     if not 0 < total < len(odds):
         raise ValueError(f"total must be in (0, {len(odds)}), got {total}")
+    if method == Method.SHIN and total > 1:
+        raise ValueError("Shin applies to single-winner markets only")
     if method == Method.SHIN and total != 1:
         return [p * total for p in shin_from_implied([implied(o) / total for o in odds])]
     return devig(odds, method, total)

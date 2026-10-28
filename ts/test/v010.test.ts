@@ -46,3 +46,26 @@ describe("v0.1.0 compatibility", () => {
     expect(Object.keys(V010).sort()).toEqual(["basic", "millis", "unicode"]);
   });
 });
+
+// The v0.2.0 absent-pair vector: a record without a paper price (8 canonical fields). A literal, never read
+// from cases.json, pinned like the v0.1.0 hashes above. Mirrors python/tests/test_v010_compat.py.
+const V020_ABSENT_PAIR: CanonicalPrediction = {
+  modelVersion: "golf-baseline@1",
+  sport: "golf",
+  event: "2026-mexico-open",
+  market: "2026-mexico-open:top_10",
+  selection: "2026-mexico-open:top_10:player-123",
+  fairProb: 0.1834,
+  predictedAt: new Date("2026-10-29T13:05:00Z"),
+  featuresSummary: { form_trend: "strong", course_fit: "+" },
+};
+const V020_ABSENT_PAIR_ROW_HASH = "0d4c4df74722297d0e8a95ad1bce1c12d2548bc81033e7ba38a299621943eb14";
+
+describe("v0.2.0 absent-pair vector", () => {
+  test("a record without a paper price hashes to the pinned value", () => {
+    expect("paperPrice" in V020_ABSENT_PAIR || "paperBook" in V020_ABSENT_PAIR).toBe(false);
+    const bytes = canonicalBytes(V020_ABSENT_PAIR);
+    expect(new TextDecoder().decode(bytes)).not.toContain("paper");
+    expect(toHex(rowHash(V010_SALT, bytes))).toBe(V020_ABSENT_PAIR_ROW_HASH);
+  });
+});

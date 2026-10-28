@@ -88,6 +88,8 @@ def _read_closes(closes: Mapping[str, Mapping[str, float]], refs: tuple[str, ...
             if not isinstance(sel, str):
                 raise ValueError(f"selection keys must be strings, got {sel!r} in book {book!r}")
             implied(odds)  # decimal odds > 1, or ValueError
+            if not math.isfinite(odds):  # implied(inf) is 0.0, which would count toward coverage at probability 0
+                raise ValueError(f"decimal odds must be finite, got {odds!r} for {sel!r} in book {book!r}")
         out[book] = dict(lines)
     return out
 
@@ -118,7 +120,7 @@ def consensus_close(
     Deterministic: books and selections are processed in code-point order, whatever the input order. Raises
     ValueError before any work for an unknown rule or method, Shin with n_winners != 1, n_winners not an
     int >= 1, fewer than MIN_BOOKS distinct non-empty reference books, a non-string selection key, or odds
-    that are not decimal odds > 1.
+    that are not finite decimal odds > 1.
     """
     method, refs = _check_args(rule, method, n_winners, reference_books)
     lines = _read_closes(closes, refs)

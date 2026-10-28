@@ -165,3 +165,18 @@ def test_partial_bounds_and_shin_limits():
         pytest.raises(ValueError, devig_partial, C, Method.POWER, bad)
     with pytest.raises(ValueError, match="single-winner"):
         estimator_probs(A, Method.SHIN, 3)
+
+
+def test_devig_partial_refuses_shin_above_one():
+    # Shin is single-winner: a total above 1 must raise, never fall back to multiplicative.
+    with pytest.raises(ValueError, match="single-winner"):
+        devig_partial(C, Method.SHIN, 1.5)
+    assert devig_partial(C, Method.SHIN, 1) == devig(C, Method.SHIN)  # total == 1 is still exactly devig
+    assert math.fsum(devig_partial(C, Method.SHIN, 0.9)) == approx(0.9, abs=1e-12)  # below 1 unchanged
+
+
+@pytest.mark.parametrize("method", [Method.MULTIPLICATIVE, Method.POWER, Method.SHIN])
+@pytest.mark.parametrize("bad", [True, False, None, "1", math.nan, math.inf, -math.inf, 0, 0.0, -1])
+def test_estimator_probs_rejects_invalid_n_winners(method, bad):
+    with pytest.raises(ValueError, match="n_winners"):
+        estimator_probs(A, method, bad)

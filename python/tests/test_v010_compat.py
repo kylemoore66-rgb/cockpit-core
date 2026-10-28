@@ -3,7 +3,7 @@
 The expected hashes are literals, never read from cases.json, so a fixture edit cannot hide drift.
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 import pytest
 from bundles import write_bundle
@@ -41,6 +41,28 @@ def test_v010_vectors_byte_identical(cases, name):
     pred = cases["canonical"][name]["prediction"]
     assert "paper_price" in pred and "paper_book" in pred  # a v0.1.0 record always carries the pair
     assert row_hash(V010_SALT, canonical_bytes(_build(pred))).hex() == V010_ROW_HASHES[name]
+
+
+# The v0.2.0 absent-pair vector: a record without a paper price (8 canonical fields). Built inline, never read
+# from cases.json, and pinned like the v0.1.0 hashes above.
+V020_ABSENT_PAIR_ROW_HASH = "0d4c4df74722297d0e8a95ad1bce1c12d2548bc81033e7ba38a299621943eb14"
+
+
+def test_v020_absent_pair_vector_pinned():
+    pred = CanonicalPrediction(
+        model_version="golf-baseline@1",
+        sport="golf",
+        event="2026-mexico-open",
+        market="2026-mexico-open:top_10",
+        selection="2026-mexico-open:top_10:player-123",
+        fair_prob=0.1834,
+        paper_price=None,
+        paper_book=None,
+        predicted_at=datetime(2026, 10, 29, 13, 5, tzinfo=UTC),
+        features_summary={"form_trend": "strong", "course_fit": "+"},
+    )
+    assert b"paper" not in canonical_bytes(pred)
+    assert row_hash(V010_SALT, canonical_bytes(pred)).hex() == V020_ABSENT_PAIR_ROW_HASH
 
 
 def test_v010_bundle_still_proven(tmp_path):
