@@ -61,10 +61,19 @@ def test_none_when_fewer_than_three_other_books():
     assert live_fair(q, exclude=None) is not None  # the same three books count when none is excluded
 
 
-def test_min_books_override():
+def test_min_books_override_above_the_floor():
+    # A larger min_books still satisfies consensus-loo-v1's "at least 3 other books".
+    assert live_fair(MARKET, exclude="d", min_books=4) is None  # a, b and c count: 3 < 4
+    r = live_fair(MARKET, exclude=None, min_books=4)
+    assert r is not None and r.books == ("a", "b", "c", "d") and r.rule == LIVE_RULE
+
+
+@pytest.mark.parametrize("below", [1, 2])
+def test_rejects_min_books_below_the_rule_floor(below):
+    # consensus-loo-v1 needs at least LIVE_MIN_BOOKS other books, so a smaller min_books would mislabel the result.
     q = {b: MARKET[b] for b in ("a", "b", "d")}
-    r = live_fair(q, exclude="d", min_books=2)
-    assert r is not None and r.books == ("a", "b")
+    with pytest.raises(ValueError, match="min_books"):
+        live_fair(q, exclude="d", min_books=below)
 
 
 def test_incomplete_book_does_not_count():
@@ -84,7 +93,8 @@ def test_union_includes_the_excluded_book():
 
 @pytest.mark.parametrize("exclude", [None, "a", "b", "c", "d", "zz"])
 def test_stray_selection_in_a_counted_book_leaves_nothing(exclude):
-    # b (not excluded) quotes a selection nobody else prices: no book covers the field, whatever is excluded.
+    # b (not excluded) quotes a selection nobody else prices: at most b covers the field, so fewer than
+    # min_books books count, whatever is excluded.
     q = {**MARKET, "b": {"h": 1.95, "v": 1.87, "stray": 9.0}}
     assert live_fair(q, exclude=exclude) is None
 

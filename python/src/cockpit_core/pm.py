@@ -43,8 +43,10 @@ _ROUNDINGS: dict[str, tuple[Fraction, Callable[[Fraction], int]]] = {
 class FeeModel:
     """One venue's published taker fee: fee = taker_rate * C * p * (1 - p), rounded per `rounding`.
 
-    C is the number of contracts in the order and p the price in dollars; the fee is charged once per
-    order, on the whole quantity. `rounding` is one of:
+    C is the number of contracts in the order and p the price in dollars; the fee is computed and rounded
+    once, on the whole quantity. That matches Kalshi, whose rounding-fee accumulator makes an order's fills
+    converge to one fill's fee. Polymarket applies fees at match time, so for it this holds only for one
+    order filled at one price in one match. `rounding` is one of:
 
     - ``"ceil_cent"``: rounded up to the next $0.01.
     - ``"ceil_centicent"``: rounded up to the next $0.0001.
@@ -71,21 +73,26 @@ class FeeModel:
             raise ValueError(f"rounding must be one of {sorted(_ROUNDINGS)}, got {shown(self.rounding)}")
 
 
-# Kalshi, read 2026-11-02.
+# Kalshi, checked 2026-11-02.
 # Sources:
-# - Fee schedule, https://kalshi.com/docs/kalshi-fee-schedule.pdf ("Fee Schedule for July 2026 - 7.7.26
-#   Update"), also linked from https://kalshi.com/fee-schedule. Its general taker formula is
-#   "fees = round up(M x 0.07 x C x P x (1-P))", with C the number of contracts, P the price in dollars and
-#   M a per-market multiplier that defaults to 1; the round-up is to a centicent ($0.0001). The PDF could
-#   not be opened directly on 2026-11-02 (bot checkpoint, HTTP 429); this wording is from the search
-#   index's copy of that PDF.
-# - Fee rounding, https://docs.kalshi.com/getting_started/fee_rounding (read directly): "Direct member
-#   balances are aligned to `$0.0001` (`0.01c`)", "Non-direct member balances are aligned to `$0.01`
-#   (`1c`)", the trade fee is "rounded up to the nearest `$0.000001`" and a rounding fee brings the balance
-#   back to the member's grid; "The fee accumulator applies across all fills of an order so that the total
-#   fee converges to what a single equivalent fill would cost."
-# - Fees, https://help.kalshi.com/trading/fees: "Some markets have fees that are different from those of
-#   other markets"; maker fees apply only to resting orders.
+# - Fee schedule, https://kalshi.com/docs/kalshi-fee-schedule.pdf, linked from https://kalshi.com/fee-schedule:
+#   NOT read directly. Both returned HTTP 429 (a bot checkpoint) on 2026-11-02. A search index's copy of the
+#   PDF gives the title and date "July 2026 - 7.7.26 Update" and the formula
+#   "fees = round up(M x 0.07 x C x P x (1-P))" (C contracts, P the price in dollars, M a per-market
+#   multiplier, default 1); another indexed copy is dated Feb 5, 2026. That title, date and wording are
+#   unverified.
+# - Fee rounding, https://docs.kalshi.com/getting_started/fee_rounding, read directly on 2026-11-02. Its
+#   worked example's model fee of $0.00363825 on a $0.055 buy equals 0.07 x 0.055 x 0.945 exactly. It says
+#   "Direct member balances are aligned to `$0.0001` (`0.01c`)" and "Non-direct member balances are aligned
+#   to `$0.01` (`1c`)" (FCM-cleared members); the trade fee is "rounded up to the nearest `$0.000001`" and a
+#   rounding fee brings the balance back to the member's grid; "The fee accumulator applies across all fills
+#   of an order so that the total fee converges to what a single equivalent fill would cost."
+# - Fees, https://help.kalshi.com/trading/fees (read directly): "Some markets have fees that are different
+#   from those of other markets"; maker fees apply only to resting orders.
+# So the rate 0.07 and the price term P(1 - P) are corroborated by the fee-rounding page's worked example,
+# and the round-up to $0.0001 is derived from its direct-member balance grid (fee rounded up to $0.000001,
+# then the rounding fee restores the $0.0001 grid; with p*C on that grid the net is a fee rounded up to
+# $0.0001). Neither the rate, the price term nor the round-up was read from the schedule itself.
 # Scope: the general taker fee (M = 1) for a direct member (an account held with Kalshi itself), one order
 # at one price. Not modelled: markets with a different multiplier, maker fees, and accounts cleared through
 # an FCM (their balances sit on the $0.01 grid, so their fee rounds up to the cent).
@@ -107,7 +114,9 @@ _KALSHI_TAKER_2026_11 = FeeModel(
 # are fee-free").
 # Scope: the Other / General taker rate, 0.05, which Sports, Economics, Culture, Weather and Combos share.
 # Not modelled: Crypto (0.07), Finance, Politics, Mentions and Tech (0.04), and fee-free Geopolitics, nor
-# the maker and taker rebate programmes. USDC is taken as dollars.
+# the maker and taker rebate programmes. USDC is taken as dollars. Polymarket applies fees at match time, so
+# one rounding per order holds only for one order filled at one price in one match. The page does not say how
+# a buy's fee is collected; this model assumes it is paid in USDC on top of price * contracts.
 _POLYMARKET_2026_11 = FeeModel(
     code="polymarket-2026-11",
     venue="polymarket",
@@ -149,9 +158,16 @@ def pm_break_even(price: Decimal | str, *, fee_model: str, contracts: int = 1) -
     """Break-even win probability of buying `contracts` at `price` after the taker fee: (p*C + fee) / C.
 
     `fee_model` is a code in `FEE_MODELS` (an unknown code raises KeyError). `price` is in dollars with
-    0 < price < 1, and `contracts` an int of at least 1; the fee is charged once on the whole order, so
+    0 < price < 1, and `contracts` an int of at least 1; the fee is rounded once on the whole order, so
     rounding is per order, not per contract. Exact, divided once (precision 40, truncated), not rounded.
     One contract at $0.50 under ``kalshi-taker-2026-11`` breaks even at 0.5175 (a fee of $0.0175).
+
+    Assumptions, not checked: the fee is paid in dollars (USDC) on top of price * contracts, which is what
+    (p*C + fee) / C assumes. One rounding per order holds for Kalshi (its fee accumulator converges an
+    order's fills); for Polymarket, which applies fees at match time, only for one order filled at one price
+    in one match. `price` is on the venue's tick: the ``ceil_centicent`` rule matches Kalshi's rounding only
+    when p*C is on the $0.0001 grid, and an off-tick price can give a result above 1 (``"0.99995"`` under
+    ``kalshi-taker-2026-11`` gives 1.00005).
     """
     try:
         model = FEE_MODELS[fee_model]

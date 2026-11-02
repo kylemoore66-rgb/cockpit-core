@@ -62,23 +62,25 @@ def live_fair(
     is not `exclude` (None excludes nothing; a name absent from `quotes` excludes nothing either). Each counted
     book is de-vigged with `method` to 1, and a selection's fair probability is the mean (math.fsum) of the
     counted books' probabilities, formatted by fmt_prob. Returns None when fewer than `min_books` books count,
-    or when the field is empty. Callers pass one market's quotes with a normalised selection set: a book that
-    quotes a selection no other book prices leaves no book covering the field, so the result is None for every
-    `exclude`. Sum(fair) is within about len(fair) * 5e-7 of 1 (6 dp rounding), so never assert it equals 1.
+    or when the field is empty. `min_books` may be raised above LIVE_MIN_BOOKS (3) but not lowered, so the
+    `rule` label always holds. Callers pass one market's quotes with a normalised selection set: when a book
+    quotes a selection no other book prices, at most that book covers the field, so fewer than `min_books`
+    books count and the result is None for every `exclude`. Sum(fair) is within about len(fair) * 5e-7 of 1
+    (6 dp rounding), so never assert it equals 1.
 
     Deterministic: books are processed in code-point order, whatever the input order. Raises ValueError before
-    any work for an unknown method, a `min_books` that is not an int >= 1 (a bool is rejected), an `exclude`
-    that is neither None nor a non-empty string, `quotes` that is not a mapping, a book name that is not a
-    non-empty string, a book's quotes that are not a mapping, a non-string selection key, or odds (in any
-    book, the excluded one included) that are not finite decimal odds > 1. A de-vig that fails (a one-selection
-    field, for one) or a mean that rounds outside (0, 1) at 6 dp also raises ValueError.
+    any work for an unknown method, a `min_books` that is not an int >= LIVE_MIN_BOOKS (a bool is rejected),
+    an `exclude` that is neither None nor a non-empty string, `quotes` that is not a mapping, a book name that
+    is not a non-empty string, a book's quotes that are not a mapping, a non-string selection key, or odds (in
+    any book, the excluded one included) that are not finite decimal odds > 1. A de-vig that fails (a
+    one-selection field, for one) or a mean that rounds outside (0, 1) at 6 dp also raises ValueError.
     """
     try:
         method = Method(method)
     except ValueError:
         raise ValueError(f"unknown de-vig method {method!r}") from None
-    if isinstance(min_books, bool) or not isinstance(min_books, int) or min_books < 1:
-        raise ValueError(f"min_books must be an int >= 1, got {min_books!r}")
+    if isinstance(min_books, bool) or not isinstance(min_books, int) or min_books < LIVE_MIN_BOOKS:
+        raise ValueError(f"min_books must be an int >= {LIVE_MIN_BOOKS} (the {LIVE_RULE} floor), got {min_books!r}")
     if exclude is not None and (not isinstance(exclude, str) or not exclude):
         raise ValueError(f"exclude must be None or a non-empty book name, got {exclude!r}")
     lines = _read_quotes(quotes)
