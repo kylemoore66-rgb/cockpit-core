@@ -62,7 +62,9 @@ def live_fair(
     is not `exclude` (None excludes nothing; a name absent from `quotes` excludes nothing either). Each counted
     book is de-vigged with `method` to 1, and a selection's fair probability is the mean (math.fsum) of the
     counted books' probabilities, formatted by fmt_prob. Returns None when fewer than `min_books` books count,
-    or when the field is empty.
+    or when the field is empty. Callers pass one market's quotes with a normalised selection set: a book that
+    quotes a selection no other book prices leaves no book covering the field, so the result is None for every
+    `exclude`. Sum(fair) is within about len(fair) * 5e-7 of 1 (6 dp rounding), so never assert it equals 1.
 
     Deterministic: books are processed in code-point order, whatever the input order. Raises ValueError before
     any work for an unknown method, a `min_books` that is not an int >= 1 (a bool is rejected), an `exclude`

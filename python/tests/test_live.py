@@ -82,6 +82,13 @@ def test_union_includes_the_excluded_book():
     assert live_fair(q, exclude="d") is None
 
 
+@pytest.mark.parametrize("exclude", [None, "a", "b", "c", "d", "zz"])
+def test_stray_selection_in_a_counted_book_leaves_nothing(exclude):
+    # b (not excluded) quotes a selection nobody else prices: no book covers the field, whatever is excluded.
+    q = {**MARKET, "b": {"h": 1.95, "v": 1.87, "stray": 9.0}}
+    assert live_fair(q, exclude=exclude) is None
+
+
 def test_exclude_none_uses_all_books():
     r = live_fair(MARKET, exclude=None, method="multiplicative")
     assert r.books == ("a", "b", "c", "d")
