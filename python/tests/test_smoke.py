@@ -1,7 +1,7 @@
 import subprocess
 import sys
 
-BASE_MODULES = ["odds", "devig", "kelly", "settle", "clv", "canonical", "gate", "proof", "verify", "consensus"]
+BASE_MODULES = ["odds", "devig", "kelly", "settle", "clv", "canonical", "gate", "proof", "verify", "consensus", "live"]
 
 _IMPORT_SCRIPT = """
 import importlib
