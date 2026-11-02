@@ -1,7 +1,7 @@
 export const VERSION = "0.2.0";
 
 export { Decimal, type DecimalInput } from "./decimal.js";
-export { americanFromDecimal, decimalFromAmerican, implied } from "./odds.js";
+export { americanFromDecimal, decimalFromAmerican, implied, priceDecimalFromAmerican } from "./odds.js";
 export { DEFAULT_STAKE_SETTINGS, type StakeSettings, edge, fullKelly, sizeStake } from "./kelly.js";
 export { HALF_LOSS, HALF_WIN, LOSS, type Settlement, VOID, WIN, profit, settlement } from "./settle.js";
 export { type CanonicalPrediction, canonicalBytes, fmtPrice, fmtProb, fmtTs } from "./canonical.js";

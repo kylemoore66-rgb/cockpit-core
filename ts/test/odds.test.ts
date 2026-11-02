@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { Decimal, americanFromDecimal, decimalFromAmerican, implied } from "../src/index.js";
+import { Decimal, americanFromDecimal, decimalFromAmerican, implied, priceDecimalFromAmerican } from "../src/index.js";
 import { cases } from "./cases.js";
 
 describe("odds conversion", () => {
@@ -62,4 +62,56 @@ describe("odds conversion", () => {
       expect(() => americanFromDecimal(bad as unknown as Decimal)).toThrow(RangeError);
     },
   );
+});
+
+describe("priceDecimalFromAmerican (bet price storage: 8 dp, half-up)", () => {
+  const fixture = cases.american_8dp as {
+    cases: Array<{ american: number; decimal_8dp: string }>;
+    refused: unknown[];
+  };
+
+  test("matches the shared fixture as 8-place strings", () => {
+    expect(fixture.cases).toHaveLength(11);
+    for (const c of fixture.cases) {
+      const got = priceDecimalFromAmerican(c.american);
+      expect(Decimal.isDecimal(got), JSON.stringify(c)).toBe(true);
+      expect(got.toFixed(8), JSON.stringify(c)).toBe(c.decimal_8dp);
+      expect(got.eq(c.decimal_8dp), JSON.stringify(c)).toBe(true);
+    }
+  });
+
+  test("refuses the shared fixture's refusals, -100 included", () => {
+    expect(fixture.refused).toContain(-100);
+    for (const bad of fixture.refused) {
+      expect(() => priceDecimalFromAmerican(bad as number), JSON.stringify(bad)).toThrow(RangeError);
+    }
+  });
+
+  test.each([-100, 0, 99, -99, 100.5, Number.NaN, Infinity, -Infinity, 2 ** 53, true, null, undefined, "150", 150n])(
+    "refuses %s",
+    (bad) => {
+      expect(() => priceDecimalFromAmerican(bad as unknown as number)).toThrow(RangeError);
+    },
+  );
+
+  test("is not decimalFromAmerican: that one keeps precision 40, truncated, and still takes -100", () => {
+    expect(decimalFromAmerican(-110).toString()).toBe("1.909090909090909090909090909090909090909");
+    expect(priceDecimalFromAmerican(-110).toFixed(8)).toBe("1.90909091");
+    expect(decimalFromAmerican(-100).toString()).toBe("2");
+  });
+
+  test("every American price in 100 <= |a| <= 20000 (a != -100) agrees with the exact value rounded half-up", () => {
+    const Oracle = Decimal.clone({ precision: 50, rounding: Decimal.ROUND_DOWN });
+    let checked = 0;
+    for (let a = -20000; a <= 20000; a++) {
+      if (Math.abs(a) < 100 || a === -100) continue;
+      const exact = a > 0 ? new Oracle(100 + a).div(100) : new Oracle(-a + 100).div(-a);
+      const want = exact.toDecimalPlaces(8, Decimal.ROUND_HALF_UP).toFixed(8);
+      const got = priceDecimalFromAmerican(a);
+      if (got.toFixed(8) !== want) throw new Error(`mismatch at ${a}: ${got.toFixed(8)} != ${want}`);
+      if (americanFromDecimal(got) !== a) throw new Error(`round trip fails at ${a}`);
+      checked += 1;
+    }
+    expect(checked).toBe(2 * (20000 - 99) - 1);
+  });
 });

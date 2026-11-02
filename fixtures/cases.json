@@ -129,5 +129,23 @@
       "charlie": {"s01": 2.9, "s02": 4.2, "s03": 5.0, "s04": 8.5, "s05": 9.5, "s06": 12.0, "s07": 16.0, "s08": 19.0, "s09": 23.0},
       "delta": {"s01": 3.1, "s02": 4.0, "s03": 5.0, "s04": 8.0, "s05": 10.0, "s06": 12.0, "s07": 15.0, "s08": 20.0}
     }
+  },
+  "american_8dp": {
+    "note": "bet price storage rule: American to decimal exactly, rounded half-up to exactly 8 dp; compared as strings (Python str, TS toFixed(8)); synthetic prices",
+    "cases": [
+      {"american": -1400, "decimal_8dp": "1.07142857"},
+      {"american": -110, "decimal_8dp": "1.90909091", "note": "exact 1.90909090|909...; truncation would give 1.90909090"},
+      {"american": 150, "decimal_8dp": "2.50000000"},
+      {"american": 100, "decimal_8dp": "2.00000000"},
+      {"american": -20000, "decimal_8dp": "1.00500000"},
+      {"american": -51200, "decimal_8dp": "1.00195313", "note": "exact 1.001953125, a tie; half-up rounds up, half-even would give 1.00195312"},
+      {"american": -101, "decimal_8dp": "1.99009901"},
+      {"american": -12345, "decimal_8dp": "1.00810045", "note": "exact 1.0081004455...; truncation would give 1.00810044"},
+      {"american": -333, "decimal_8dp": "1.30030030"},
+      {"american": 250, "decimal_8dp": "3.50000000"},
+      {"american": 1000000, "decimal_8dp": "10001.00000000"}
+    ],
+    "refused": [-100, 99, -99, 0, 1, -1, 150.5, "150", true, null],
+    "refused_note": "-100 is refused (the database refuses it; callers normalise it to +100), as are |a| < 100 and anything that is not an integer"
   }
 }

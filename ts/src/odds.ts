@@ -1,5 +1,5 @@
 /** Odds basics: implied probability and American/decimal conversion. */
-import type { Decimal, DecimalInput } from "./decimal.js";
+import { Decimal, type DecimalInput } from "./decimal.js";
 import { cmp, div, divideOnce, exactMoney, mul, rat, show, sub, ONE } from "./_exact.js";
 
 /** A float price for the research/display helpers: a finite number > 1. Anything else is a RangeError. */
@@ -32,6 +32,33 @@ export function decimalFromAmerican(a: number): Decimal {
   }
   const n = BigInt(a);
   return divideOnce(n > 0n ? rat(100n + n, 100n) : rat(-n + 100n, -n));
+}
+
+const PRICE_PLACES = 8;
+const PRICE_SCALE = 10n ** BigInt(PRICE_PLACES);
+
+/**
+ * The stored decimal price of a bet placed at American odds `a`: the bet-price storage rule.
+ *
+ * +a gives 1 + a/100 and -a gives 1 + 100/a, computed as an exact rational and rounded half-up to exactly
+ * 8 decimal places (so -51200, exactly 1.001953125, stores as 1.00195313), the same value as the Python
+ * package's `price_decimal_from_american`. The rounding is done in bigints, so it is exact. Serialise the
+ * result with `toFixed(8)` (decimal.js drops trailing zeros elsewhere): `priceDecimalFromAmerican(150)
+ * .toFixed(8) === "2.50000000"`.
+ *
+ * This is the rule the database applies to a stored bet price, and it differs from `decimalFromAmerican`
+ * (precision 40, truncated), which is unchanged. RangeError for anything that is not a safe integer,
+ * |a| < 100, and -100 (the database refuses it; callers normalise -100 to +100).
+ */
+export function priceDecimalFromAmerican(a: number): Decimal {
+  if (typeof a !== "number" || !Number.isSafeInteger(a) || Math.abs(a) < 100 || a === -100) {
+    throw new RangeError(`American odds must be an integer with |a| >= 100 and not -100, got ${show(a)}`);
+  }
+  const n = BigInt(a);
+  const exact = n > 0n ? rat(100n + n, 100n) : rat(-n + 100n, -n);
+  const units = (2n * exact.n * PRICE_SCALE + exact.d) / (2n * exact.d); // floor(x * 1e8 + 1/2); x > 0
+  const frac = (units % PRICE_SCALE).toString().padStart(PRICE_PLACES, "0");
+  return new Decimal(`${units / PRICE_SCALE}.${frac}`); // the constructor never rounds
 }
 
 /**
