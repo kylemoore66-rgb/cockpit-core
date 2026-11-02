@@ -42,6 +42,19 @@ function checkValues(win: readonly [bigint, bigint], refund: readonly [bigint, b
   return [w, r];
 }
 
+/**
+ * The exact (win, refund) rationals of a Settlement, for the money functions (internal: not exported from
+ * the package). A value that is not `{ win: [n, d], refund: [n, d] }` of bigints is a TypeError naming
+ * `name`; bad fractions are a RangeError.
+ */
+export function settlementFractions(name: string, s: unknown): [Rational, Rational] {
+  const { win, refund } = typeof s === "object" && s !== null ? (s as { win?: unknown; refund?: unknown }) : {};
+  if (!isPair(win) || !isPair(refund)) {
+    throw new TypeError(`${name} must be a Settlement ({ win: [n, d], refund: [n, d] } of bigints)`);
+  }
+  return checkValues(win, refund);
+}
+
 /** A settlement from "n/d" strings, e.g. settlement("2/3", "0/1") for a dead heat paying 2 of 3. */
 export function settlement(win: string, refund: string): Settlement {
   const w = parseFraction("win", win);
@@ -71,10 +84,7 @@ export const HALF_LOSS: Settlement = settlement("0/1", "1/2");
  * exactly -6.875 and settles at -6.88. Never returns negative zero.
  */
 export function profit(stake: DecimalInput, price: DecimalInput, s: Settlement): Decimal {
-  if (typeof s !== "object" || s === null || !isPair(s.win) || !isPair(s.refund)) {
-    throw new TypeError("s must be a Settlement ({ win: [n, d], refund: [n, d] } of bigints)");
-  }
-  const [w, r] = checkValues(s.win, s.refund);
+  const [w, r] = settlementFractions("s", s);
   const b = exactMoney("stake", stake);
   const o = exactMoney("price", price);
   if (b.n < 0n) throw new RangeError(`stake must be >= 0, got ${show(stake)}`);

@@ -147,5 +147,25 @@
     ],
     "refused": [-100, 99, -99, 0, 1, -1, 150.5, "150", true, null],
     "refused_note": "-100 is refused (the database refuses it; callers normalise it to +100), as are |a| < 100 and anything that is not an integer"
+  },
+  "expected": {
+    "note": "expected profit, variance and the cumulative band; results are unrounded (one division, precision 40, truncated) and compared by value, not string; variances computed exactly with fractions, then frozen; synthetic prices",
+    "binary": [
+      {"name": "positive_edge", "stake": "100", "p": "0.55", "o": "1.9091", "expected_profit": "5.0005", "variance": "9020.54045475"},
+      {"name": "negative_edge", "stake": "50", "p": "0.4", "o": "2.2", "expected_profit": "-6", "variance": "2904"},
+      {"name": "long_digits_truncated_at_40", "stake": "1234.5678912345", "p": "0.1234567891234567891", "o": "8.0000000000000000001", "expected_profit": "-15.24158878067276959860318006772715962017", "variance": "10555972.18372173085188366896271192256409", "note": "exact values have 50 and 104 significant digits; the variance's 41st digit is 8, so rounding instead of truncating would end ...56410"},
+      {"name": "certain_win", "stake": "10", "p": "1", "o": "1.5", "expected_profit": "5", "variance": "0"},
+      {"name": "certain_loss", "stake": "10", "p": "0", "o": "3", "expected_profit": "-10", "variance": "0"}
+    ],
+    "outcomes": [
+      {"name": "push", "stake": "10", "price": "2.0", "outcomes": [["0.45", {"win": "1/1", "refund": "0/1"}], ["0.10", {"win": "0/1", "refund": "1/1"}], ["0.45", {"win": "0/1", "refund": "0/1"}]], "mean": "0", "variance": "90"},
+      {"name": "dead_heat_third", "stake": "10", "price": "2.5", "outcomes": [["0.5", {"win": "1/1", "refund": "0/1"}], ["0.25", {"win": "1/3", "refund": "0/1"}], ["0.25", {"win": "0/1", "refund": "0/1"}]], "mean": "4.583333333333333333333333333333333333333", "variance": "117.1875", "note": "exact mean 55/12, truncated at 40 digits; exact variance 1875/16"},
+      {"name": "quarter_line", "stake": "100", "price": "1.9091", "outcomes": [["0.3", {"win": "1/2", "refund": "1/2"}], ["0.4", {"win": "0/1", "refund": "1/2"}], ["0.3", {"win": "0/1", "refund": "0/1"}]], "mean": "-36.3635", "variance": "3297.54297525"}
+    ],
+    "band": [
+      {"name": "three_bets", "bets": [["5.0005", "9"], ["-10", "16"], ["2.5", "75"]], "points": [{"expected": "5.0005", "sigma": 3.0}, {"expected": "-4.9995", "sigma": 5.0}, {"expected": "-2.4995", "sigma": 10.0}]},
+      {"name": "exact_sum_past_40_digits", "bets": [["100000000000000000000", "2"], ["0.000000000000000000001", "0"]], "points": [{"expected": "100000000000000000000", "sigma": 1.4142135623730951}, {"expected": "100000000000000000000.000000000000000000001", "sigma": 1.4142135623730951}], "note": "the running sum is exact: 42 significant digits"},
+      {"name": "empty", "bets": [], "points": []}
+    ]
   }
 }
