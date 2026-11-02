@@ -76,11 +76,15 @@ class FeeModel:
 # Kalshi, checked 2026-11-02.
 # Sources:
 # - Fee schedule, https://kalshi.com/docs/kalshi-fee-schedule.pdf, linked from https://kalshi.com/fee-schedule:
-#   NOT read directly. Both returned HTTP 429 (a bot checkpoint) on 2026-11-02. A search index's copy of the
-#   PDF gives the title and date "July 2026 - 7.7.26 Update" and the formula
+#   NOT read by automated request. Both returned HTTP 429 (a bot checkpoint) on 2026-11-02. A search index's
+#   copy of the PDF gives the title and date "July 2026 - 7.7.26 Update" and the formula
 #   "fees = round up(M x 0.07 x C x P x (1-P))" (C contracts, P the price in dollars, M a per-market
-#   multiplier, default 1); another indexed copy is dated Feb 5, 2026. That title, date and wording are
-#   unverified.
+#   multiplier, default 1); another indexed copy is dated Feb 5, 2026. The wording of the formula is that
+#   copy's; the 7.7.26 Update is confirmed as the schedule in force by the maintainer's read below.
+# - Fee schedule, https://kalshi.com/fee-schedule, read in a browser by the maintainer on 2026-11-02, who
+#   confirmed four points: the taker coefficient is 0.07; fees round up to $0.0001 for direct members
+#   (accounts held with Kalshi itself); no schedule newer than the "7.7.26 Update" is in force; and sports
+#   markets use multiplier M = 1.
 # - Fee rounding, https://docs.kalshi.com/getting_started/fee_rounding, read directly on 2026-11-02. Its
 #   worked example's model fee of $0.00363825 on a $0.055 buy equals 0.07 x 0.055 x 0.945 exactly. It says
 #   "Direct member balances are aligned to `$0.0001` (`0.01c`)" and "Non-direct member balances are aligned
@@ -89,10 +93,11 @@ class FeeModel:
 #   of an order so that the total fee converges to what a single equivalent fill would cost."
 # - Fees, https://help.kalshi.com/trading/fees (read directly): "Some markets have fees that are different
 #   from those of other markets"; maker fees apply only to resting orders.
-# So the rate 0.07 and the price term P(1 - P) are corroborated by the fee-rounding page's worked example,
-# and the round-up to $0.0001 is derived from its direct-member balance grid (fee rounded up to $0.000001,
-# then the rounding fee restores the $0.0001 grid; with p*C on that grid the net is a fee rounded up to
-# $0.0001). Neither the rate, the price term nor the round-up was read from the schedule itself.
+# So the rate 0.07, the $0.0001 round-up and M = 1 were confirmed against the schedule by the maintainer.
+# They are also corroborated by the docs.kalshi.com fee-rounding page: its worked example fits the rate and
+# the price term P(1 - P), and its direct-member balance grid gives the round-up (fee rounded up to
+# $0.000001, then the rounding fee restores the $0.0001 grid; with p*C on that grid the net is a fee
+# rounded up to $0.0001).
 # Scope: the general taker fee (M = 1) for a direct member (an account held with Kalshi itself), one order
 # at one price. Not modelled: markets with a different multiplier, maker fees, and accounts cleared through
 # an FCM (their balances sit on the $0.01 grid, so their fee rounds up to the cent).
