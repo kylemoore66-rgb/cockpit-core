@@ -245,6 +245,15 @@ def test_named_outcomes():
     assert VOID == Settlement(Fraction(0), Fraction(1))
 
 
+def test_named_outcomes_match_shared_fixture(cases):
+    # The same key the TypeScript constants are checked against, so the two languages cannot drift.
+    named = {"WIN": WIN, "LOSS": LOSS, "VOID": VOID, "HALF_WIN": HALF_WIN, "HALF_LOSS": HALF_LOSS}
+    fixture = cases["settlement_constants"]
+    assert set(fixture) == set(named)
+    for name, want in fixture.items():
+        assert named[name] == Settlement(Fraction(want["win"]), Fraction(want["refund"])), name
+
+
 def test_settlement_win_plus_refund_cannot_exceed_one():
     with pytest.raises(ValueError):
         Settlement(Fraction(1, 2), Fraction(2, 3))

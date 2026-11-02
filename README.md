@@ -26,7 +26,7 @@ The Python package (imported as `cockpit_core`, Python 3.13+) is the full librar
 |---|---|---|
 | Odds: implied probability, American/decimal conversion | `odds` | `implied`, `decimalFromAmerican`, `americanFromDecimal` |
 | Kelly: edge, full Kelly, capped stake sizing | `kelly` | `edge`, `fullKelly`, `sizeStake` |
-| Settlement and profit | `settle` | `settlement`, `profit` |
+| Settlement and profit | `settle` | `settlement`, `profit`, `WIN`, `LOSS`, `VOID`, `HALF_WIN`, `HALF_LOSS` |
 | Canonical bytes of a prediction | `canonical` | `fmtProb`, `fmtPrice`, `fmtTs`, `canonicalBytes` |
 | Proofs: row hash, RFC 6962 Merkle root and inclusion proofs, chain and day roots | `proof` | `rowHash`, `merkleRoot`, `inclusionProof`, `verifyInclusion`, `chainRoot`, `dayRoot` |
 | De-vig, statistics, closing line value (`devig` also has `estimator_probs` and `devig_partial` for books that price only part of a field) | `devig`, `stats`, `clv` | Python only |

@@ -40,6 +40,13 @@
     {"name": "negative_half_cent_away_from_zero", "stake": "10", "price": "1.375", "win": "1/2", "refund": "0/1", "profit": "-3.13", "note": "exact -3.125"},
     {"name": "negative_zero_normalised", "stake": "0.01", "price": "2.9", "win": "1/3", "refund": "0/1", "profit": "0.00", "note": "exact -1/3000; must not print -0.00"}
   ],
+  "settlement_constants": {
+    "WIN": {"win": "1/1", "refund": "0/1"},
+    "LOSS": {"win": "0/1", "refund": "0/1"},
+    "VOID": {"win": "0/1", "refund": "1/1"},
+    "HALF_WIN": {"win": "1/2", "refund": "1/2"},
+    "HALF_LOSS": {"win": "0/1", "refund": "1/2"}
+  },
   "precision_edge": [
     {"name": "stake_just_under_a_cent", "kind": "stake", "fair_prob": "0.25", "price": "5.5", "bankroll": "0.999999999999999999999999999999999999999999999", "kelly_multiplier": "1", "bet_cap": "0.01", "participant_cap": "0.05", "event_cap": "0.05", "participant_exposure": "0", "event_exposure": "0", "stake": "0.00", "note": "bet cap binds at 0.00 followed by 45 nines, under one cent; a 40-digit half-even division would land on 0.01"},
     {"name": "profit_just_below_half_cent_win", "kind": "profit", "stake": "1", "price": "1.004999999999999999999999999999999999999999999999999999999999999", "win": "1/1", "refund": "0/1", "profit": "0.00", "note": "exact 0.004 followed by 60 nines; must not be lifted onto 0.005 and rounded up"},

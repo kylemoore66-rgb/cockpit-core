@@ -50,6 +50,20 @@ export function settlement(win: string, refund: string): Settlement {
   return Object.freeze({ win: Object.freeze(w), refund: Object.freeze(r) });
 }
 
+// The named outcomes, the same fractions as Python's settle.WIN etc. (fixture `settlement_constants`).
+// Built with settlement(), so they are frozen down to the tuples and deep-equal to what it returns.
+
+/** A full win: the whole stake paid at the price. */
+export const WIN: Settlement = settlement("1/1", "0/1");
+/** A loss: nothing paid, nothing refunded. */
+export const LOSS: Settlement = settlement("0/1", "0/1");
+/** A void (push): the whole stake refunded at evens. */
+export const VOID: Settlement = settlement("0/1", "1/1");
+/** A half win (e.g. a quarter line): half the stake paid at the price, half refunded. */
+export const HALF_WIN: Settlement = settlement("1/2", "1/2");
+/** A half loss (e.g. a quarter line): half the stake lost, half refunded. */
+export const HALF_LOSS: Settlement = settlement("0/1", "1/2");
+
 /**
  * Profit in money: stake * (w * o + r - 1), exact, rounded half-up (away from zero) to cents.
  *
