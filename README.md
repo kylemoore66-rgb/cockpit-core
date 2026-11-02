@@ -9,13 +9,13 @@ Nothing is published to PyPI or npm; install from the tagged GitHub release.
 Python:
 
 ```
-cockpit-core @ git+https://github.com/kylemoore66-rgb/cockpit-core@v0.2.0#subdirectory=python
+cockpit-core @ git+https://github.com/kylemoore66-rgb/cockpit-core@v0.3.0#subdirectory=python
 ```
 
 TypeScript (release tarball):
 
 ```
-https://github.com/kylemoore66-rgb/cockpit-core/releases/download/v0.2.0/kylemoore66-rgb-cockpit-core-0.2.0.tgz
+https://github.com/kylemoore66-rgb/cockpit-core/releases/download/v0.3.0/kylemoore66-rgb-cockpit-core-0.3.0.tgz
 ```
 
 ## Scope

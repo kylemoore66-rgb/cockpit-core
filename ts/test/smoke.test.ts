@@ -6,6 +6,6 @@ test("fixture loads", () => {
   expect(cases.settlement[0].profit).toBe("90.91");
 });
 
-test("VERSION is 0.2.0", () => {
-  expect(VERSION).toBe("0.2.0");
+test("VERSION is 0.3.0", () => {
+  expect(VERSION).toBe("0.3.0");
 });
